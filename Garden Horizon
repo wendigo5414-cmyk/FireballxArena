@@ -1,0 +1,1417 @@
+-- [[ KEY SYSTEM LOADER ]] --
+local KeySystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/wendigo5414-cmyk/scripts/refs/heads/main/keysystem.lua"))()
+KeySystem.Init()
+
+-- [[ GAME SCRIPT START ]] --
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "Prime X Hub | Garden Horizon",
+    SubTitle = "by PXH",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 380),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.K
+})
+
+local Tabs = {
+    Main     = Window:AddTab({ Title = "Main",     Icon = "" }),
+    Movement = Window:AddTab({ Title = "Movement", Icon = "person-standing" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "map-pin" }),
+    Items    = Window:AddTab({ Title = "Items",    Icon = "shopping-cart" }),
+    Farming  = Window:AddTab({ Title = "Farming",  Icon = "sprout" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+    About    = Window:AddTab({ Title = "About Us", Icon = "info" })
+}
+
+local Options = Fluent.Options
+
+-- ══════════════════════════════════════════
+--              SERVICES & VARS
+-- ══════════════════════════════════════════
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer       = Players.LocalPlayer
+local LocalPlayerId     = LocalPlayer.UserId
+
+local currentWalkspeed  = 16
+local currentJumpHeight = 7.2
+local headlessEnabled   = false
+local autoPlacePauseUntil = 0
+local consoleLogsEnabled = false
+
+local function Log(...)
+    if consoleLogsEnabled then print(...) end
+end
+
+local function WarnLog(...)
+    if consoleLogsEnabled then warn(...) end
+end
+
+-- ══════════════════════════════════════════
+--         FLOATING MINIMIZE ICON GUI
+-- ══════════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PXH_FloatingIcon"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = LocalPlayer.PlayerGui
+
+local IconButton = Instance.new("ImageButton")
+IconButton.Name = "FloatingIcon"
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Position = UDim2.new(0, 20, 0.5, -25)
+IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IconButton.BorderSizePixel = 0
+IconButton.Image = ""
+IconButton.ClipsDescendants = true
+IconButton.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = IconButton
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(100, 100, 255)
+UIStroke.Thickness = 2
+UIStroke.Parent = IconButton
+
+local IconImage = Instance.new("ImageLabel")
+IconImage.Name = "IconImage"
+IconImage.Size = UDim2.new(1, 0, 1, 0)
+IconImage.Position = UDim2.new(0, 0, 0, 0)
+IconImage.BackgroundTransparency = 1
+IconImage.Image = "rbxassetid://101090007765357"
+IconImage.ScaleType = Enum.ScaleType.Crop
+IconImage.Parent = IconButton
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(1, 0)
+IconCorner.Parent = IconImage
+
+-- Dragging Logic
+local dragging = false
+local dragStartPos = Vector3.new(0,0,0)
+local iconStartPos = IconButton.Position
+
+IconButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStartPos = input.Position
+        iconStartPos = IconButton.Position
+    end
+end)
+
+IconButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or
+                     input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStartPos
+        IconButton.Position = UDim2.new(
+            iconStartPos.X.Scale,
+            iconStartPos.X.Offset + delta.X,
+            iconStartPos.Y.Scale,
+            iconStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Click = Minimize
+local isWindowVisible = true
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+IconButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - dragStartPos
+        if math.abs(delta.X) < 5 and math.abs(delta.Y) < 5 then
+            isWindowVisible = not isWindowVisible
+            
+            -- Get the current minimize keybind dynamically
+            local minimizeKeyName = "K"
+            if Fluent.Options then
+                if Fluent.Options.MinimizeKeybind and Fluent.Options.MinimizeKeybind.Value then
+                    minimizeKeyName = Fluent.Options.MinimizeKeybind.Value
+                elseif Fluent.Options.MenuKeybind and Fluent.Options.MenuKeybind.Value then
+                    minimizeKeyName = Fluent.Options.MenuKeybind.Value
+                end
+            end
+            
+            local success, keyCode = pcall(function()
+                return Enum.KeyCode[minimizeKeyName]
+            end)
+            
+            if not success or not keyCode then
+                keyCode = Enum.KeyCode.K
+            end
+            
+            -- Simulate pressing the key to toggle the Fluent UI
+            VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+            task.wait()
+            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+            
+            IconImage.ImageTransparency = isWindowVisible and 0 or 0.5
+            IconButton.BackgroundColor3 = isWindowVisible
+                and Color3.fromRGB(30, 30, 30)
+                or  Color3.fromRGB(60, 30, 100)
+        end
+    end
+end)
+
+-- ══ MONEY PARSER ══════════════════════════
+local function parseMoney(text)
+    if not text or text == "" then return 0 end
+    local clean = tostring(text):gsub("%$",""):gsub(",",""):gsub("%s+",""):upper()
+    local num = tonumber(clean)
+    if num then return math.floor(num) end
+    local n, s = clean:match("^([%d%.]+)([KMBT])$")
+    if n and s then
+        local base = tonumber(n) or 0
+        if s == "K" then return math.floor(base * 1e3)
+        elseif s == "M" then return math.floor(base * 1e6)
+        elseif s == "B" then return math.floor(base * 1e9)
+        elseif s == "T" then return math.floor(base * 1e12) end
+    end
+    return 0
+end
+
+-- ══ STOCK PARSER ══════════════════════════
+local function parseStock(text)
+    if not text or text == "" then return 0 end
+    local digits = tostring(text):match("^%s*(%d+)")
+    return tonumber(digits) or 0
+end
+
+-- ══ CHARACTER HELPERS ═════════════════════
+local function applyWalkspeed(character)
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.WalkSpeed = currentWalkspeed
+    end
+end
+
+local function applyJumpHeight(character)
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.JumpHeight = currentJumpHeight
+    end
+end
+
+local function applyHeadless(character)
+    if not character then return end
+    local head = character:FindFirstChild("Head")
+    if head then
+        head.Transparency = headlessEnabled and 1 or 0
+        for _, v in ipairs(head:GetChildren()) do
+            if v:IsA("Decal") then
+                v.Transparency = headlessEnabled and 1 or 0
+            end
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid")
+    applyWalkspeed(char)
+    applyJumpHeight(char)
+    applyHeadless(char)
+end)
+
+-- ══════════════════════════════════════════
+--                 MAIN TAB
+-- ══════════════════════════════════════════
+do
+    Tabs.Main:AddParagraph({
+        Title = "Prime X Hub",
+        Content = "Made for Garden Horizon\nVersion 2.0\nEnjoy!"
+    })
+end
+
+-- ══════════════════════════════════════════
+--              MOVEMENT TAB
+-- ══════════════════════════════════════════
+do
+    Tabs.Movement:AddParagraph({ Title = "---------------- ⚡ Movement ----------------", Content = "" })
+
+    Tabs.Movement:AddSlider("SpeedSlider", {
+        Title = "Speed Slider",
+        Description = "Change your WalkSpeed",
+        Default = 16, Min = 16, Max = 200, Rounding = 0,
+        Callback = function(Value)
+            currentWalkspeed = Value
+            applyWalkspeed(LocalPlayer.Character)
+        end
+    })
+
+    Tabs.Movement:AddSlider("JumpSlider", {
+        Title = "Jump Height Slider",
+        Description = "Change your Jump Height",
+        Default = 7, Min = 7, Max = 100, Rounding = 0,
+        Callback = function(Value)
+            currentJumpHeight = Value
+            applyJumpHeight(LocalPlayer.Character)
+        end
+    })
+
+    local infiniteJumpEnabled = false
+    local jumpConnection
+
+    local InfJump = Tabs.Movement:AddToggle("InfJump", { Title = "INF Jump", Default = false })
+    InfJump:OnChanged(function(Value)
+        infiniteJumpEnabled = Value
+        if Value then
+            jumpConnection = UserInputService.JumpRequest:Connect(function()
+                if infiniteJumpEnabled then
+                    local character = LocalPlayer.Character
+                    if character and character:FindFirstChild("Humanoid") then
+                        character.Humanoid:ChangeState("Jumping")
+                    end
+                end
+            end)
+        else
+            if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
+        end
+    end)
+
+    local noclipEnabled = false
+    local noclipConnection
+
+    local NoClip = Tabs.Movement:AddToggle("NoClip", { Title = "No Clip", Default = false })
+    NoClip:OnChanged(function(Value)
+        noclipEnabled = Value
+        if Value then
+            noclipConnection = RunService.Stepped:Connect(function()
+                if noclipEnabled then
+                    local character = LocalPlayer.Character
+                    if character then
+                        for _, v in ipairs(character:GetDescendants()) do
+                            if v:IsA("BasePart") then v.CanCollide = false end
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
+        end
+    end)
+
+    Tabs.Movement:AddParagraph({ Title = "------- 🛡️ Protection & Proximity --------", Content = "" })
+
+    local godModeEnabled = false
+    local GodMode = Tabs.Movement:AddToggle("GodMode", { Title = "God Mode", Default = false })
+    GodMode:OnChanged(function(Value)
+        godModeEnabled = Value
+        if Value then
+            task.spawn(function()
+                while godModeEnabled do
+                    local traps = workspace:FindFirstChild("Traps")
+                    if traps then
+                        for _, v in ipairs(traps:GetDescendants()) do
+                            if v:IsA("BasePart") then v.CanTouch = false end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            godModeEnabled = false
+            local traps = workspace:FindFirstChild("Traps")
+            if traps then
+                for _, v in ipairs(traps:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanTouch = true end
+                end
+            end
+        end
+    end)
+
+    local instantPromptsEnabled = false
+    local originalHoldDurations = {}
+    local promptAddedConnection
+
+    local function setPromptHoldDuration(prompt, instant)
+        if instant then
+            originalHoldDurations[prompt] = prompt.HoldDuration
+            prompt.HoldDuration = 0
+        else
+            if originalHoldDurations[prompt] then
+                prompt.HoldDuration = originalHoldDurations[prompt]
+                originalHoldDurations[prompt] = nil
+            end
+        end
+    end
+
+    local ProximityPromptToggle = Tabs.Movement:AddToggle("ProximityPrompt", { Title = "Proximity Prompt", Default = false })
+    ProximityPromptToggle:OnChanged(function(Value)
+        instantPromptsEnabled = Value
+        if Value then
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then setPromptHoldDuration(v, true) end
+            end
+            promptAddedConnection = game.DescendantAdded:Connect(function(desc)
+                if instantPromptsEnabled and desc:IsA("ProximityPrompt") then
+                    setPromptHoldDuration(desc, true)
+                end
+            end)
+        else
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then setPromptHoldDuration(v, false) end
+            end
+            if promptAddedConnection then promptAddedConnection:Disconnect(); promptAddedConnection = nil end
+        end
+    end)
+
+    Tabs.Movement:AddParagraph({ Title = "------------------ 🎉 Fun ------------------", Content = "" })
+
+    local HeadlessToggle = Tabs.Movement:AddToggle("Headless", { Title = "Headless", Default = false })
+    HeadlessToggle:OnChanged(function(Value)
+        headlessEnabled = Value
+        applyHeadless(LocalPlayer.Character)
+    end)
+
+    local rainbowTrailEnabled = false
+    local rainbowTrail = nil
+    local hue = 0
+
+    local function createRainbowTrail()
+        local character = LocalPlayer.Character
+        if not character then return end
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local att1 = Instance.new("Attachment"); att1.Position = Vector3.new(-1.5, 0, 0); att1.Parent = hrp
+        local att2 = Instance.new("Attachment"); att2.Position = Vector3.new(1.5, 0, 0);  att2.Parent = hrp
+        local trail = Instance.new("Trail")
+        trail.Attachment0 = att1; trail.Attachment1 = att2
+        trail.Lifetime = 1; trail.Enabled = true; trail.Parent = hrp
+        rainbowTrail = trail
+        task.spawn(function()
+            while rainbowTrailEnabled and rainbowTrail and rainbowTrail.Parent do
+                hue = (hue + 0.01) % 1
+                rainbowTrail.Color = ColorSequence.new(Color3.fromHSV(hue, 1, 1))
+                task.wait(0.05)
+            end
+        end)
+    end
+
+    local RainbowTrailToggle = Tabs.Movement:AddToggle("RainbowTrail", { Title = "Rainbow Trail", Default = false })
+    RainbowTrailToggle:OnChanged(function(Value)
+        rainbowTrailEnabled = Value
+        if Value then
+            if rainbowTrail then rainbowTrail:Destroy() end
+            createRainbowTrail()
+        else
+            if rainbowTrail then rainbowTrail:Destroy(); rainbowTrail = nil end
+        end
+    end)
+
+    local originalHeadScale
+    local BigHeadToggle = Tabs.Movement:AddToggle("BigHead", { Title = "Big Head", Default = false })
+    BigHeadToggle:OnChanged(function(Value)
+        local character = LocalPlayer.Character
+        if not character then return end
+        local head = character:FindFirstChild("Head")
+        if not head then return end
+        if Value then
+            originalHeadScale = originalHeadScale or head.Size
+            head.Size = Vector3.new(5, 5, 5)
+        else
+            if originalHeadScale then head.Size = originalHeadScale end
+        end
+    end)
+end
+
+-- ══════════════════════════════════════════
+--              TELEPORT TAB
+-- ══════════════════════════════════════════
+do
+    Tabs.Teleport:AddParagraph({ Title = "------------ 🧍 Player Teleport ------------", Content = "" })
+
+    local function getPlayerNames()
+        local names = {}
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then table.insert(names, player.Name) end
+        end
+        return #names > 0 and names or {"No players found"}
+    end
+
+    local selectedPlayerName = nil
+
+    local PlayerDropdown = Tabs.Teleport:AddDropdown("PlayerDropdown", {
+        Title = "Select Player",
+        Description = "Choose a player to teleport to",
+        Values = getPlayerNames(),
+        Multi = false,
+        Default = 1,
+    })
+    PlayerDropdown:OnChanged(function(Value)
+        selectedPlayerName = Value
+    end)
+
+    Players.PlayerAdded:Connect(function()    PlayerDropdown:SetValues(getPlayerNames()) end)
+    Players.PlayerRemoving:Connect(function() PlayerDropdown:SetValues(getPlayerNames()) end)
+
+    Tabs.Teleport:AddButton({
+        Title = "Teleport to Selected Player",
+        Description = "Teleports you to the chosen player",
+        Callback = function()
+            if not selectedPlayerName or selectedPlayerName == "No players found" then
+                Fluent:Notify({ Title = "Error", Content = "No player selected!", Duration = 3 }); return
+            end
+            local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+            if not targetPlayer then
+                Fluent:Notify({ Title = "Error", Content = "Player not found!", Duration = 3 }); return
+            end
+            local targetCF = nil
+            local targetModel = workspace:FindFirstChild(targetPlayer.Name)
+            if targetModel and targetModel:FindFirstChild("HumanoidRootPart") then
+                targetCF = targetModel.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+            elseif targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                targetCF = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+            end
+            if targetCF then
+                local character = LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    character.HumanoidRootPart.CFrame = targetCF
+                    Fluent:Notify({ Title = "Teleported!", Content = "Teleported to " .. selectedPlayerName, Duration = 3 })
+                end
+            else
+                Fluent:Notify({ Title = "Error", Content = "Could not find position!", Duration = 3 })
+            end
+        end
+    })
+
+    Tabs.Teleport:AddParagraph({ Title = "------------ 📍 Position Memory ------------", Content = "" })
+
+    local savedPos = nil
+
+    Tabs.Teleport:AddButton({
+        Title = "Save Current Position",
+        Description = "Stores where you are standing right now",
+        Callback = function()
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                savedPos = character.HumanoidRootPart.CFrame
+                Fluent:Notify({ Title = "Position Saved!", Content = "Current position stored.", Duration = 2 })
+            else
+                Fluent:Notify({ Title = "Error", Content = "Character not found!", Duration = 2 })
+            end
+        end
+    })
+
+    Tabs.Teleport:AddButton({
+        Title = "Teleport to Saved Position",
+        Description = "Teleports you back to the saved position",
+        Callback = function()
+            if savedPos then
+                local character = LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    character.HumanoidRootPart.CFrame = savedPos
+                    Fluent:Notify({ Title = "Teleported!", Content = "Returned to saved position.", Duration = 2 })
+                end
+            else
+                Fluent:Notify({ Title = "No Position Saved", Content = "Save a position first!", Duration = 2 })
+            end
+        end
+    })
+end
+
+-- ══════════════════════════════════════════
+--                ITEMS TAB
+-- ══════════════════════════════════════════
+do
+    local function isExcluded(name)
+        if name == "ItemTemplate" or name == "TopBar" then return true end
+        if name:sub(-8) == "_Padding" then return true end
+        return false
+    end
+
+    local function getLiveSF()
+        local sf
+        pcall(function()
+            local sg = LocalPlayer.PlayerGui:FindFirstChild("SeedShop")
+            if sg and sg:FindFirstChild("Frame") then
+                sf = sg.Frame:FindFirstChild("ScrollingFrame")
+            end
+        end)
+        return sf
+    end
+
+    local function getShopItems()
+        local items = {}
+        local sf
+        pcall(function()
+            sf = LocalPlayer.PlayerGui
+                :WaitForChild("SeedShop", 3)
+                :WaitForChild("Frame", 3)
+                :WaitForChild("ScrollingFrame", 3)
+        end)
+        if not sf then return items end
+        for _, child in ipairs(sf:GetChildren()) do
+            if child:IsA("Frame") and not isExcluded(child.Name) then
+                local mi = child:FindFirstChild("MainInfo")
+                local pt = mi and mi:FindFirstChild("PriceText")
+                local price = pt and parseMoney(pt.Text) or 0
+                local priceLabel = pt and pt.Text or "$?"
+                table.insert(items, { name = child.Name, price = price, priceLabel = priceLabel })
+            end
+        end
+        table.sort(items, function(a, b) return a.price < b.price end)
+        return items
+    end
+
+    local function getPlayerMoney()
+        local ok, val = pcall(function()
+            return LocalPlayer.PlayerGui
+                :WaitForChild("FloraBook", 3)
+                :WaitForChild("Frame", 3)
+                :WaitForChild("BackCoverLeft", 3)
+                :WaitForChild("FrontPageLeft", 3)
+                :WaitForChild("StatsTab", 3)
+                :WaitForChild("ScrollingFrame", 3)
+                :WaitForChild("Money", 3)
+                :WaitForChild("StatNumber", 3).Text
+        end)
+        if ok and val then return parseMoney(val) end
+        return 0
+    end
+
+    local cachedShopItems   = {}
+    local allDropdownValues = {}
+    local selectedBuyItems  = {}
+    local scanRunning       = false
+    local autoBuyOn         = false
+
+    -- Seeds
+    Tabs.Items:AddParagraph({ Title = "----------------- 🌱 Seeds -----------------", Content = "" })
+
+    local SeedDropdown = Tabs.Items:AddDropdown("SeedDropdown", {
+        Title = "Seeds",
+        Values = { "Scanning... open SeedShop" },
+        Multi = true,
+        Default = {},
+    })
+
+    SeedDropdown:OnChanged(function(selectedTable)
+        selectedBuyItems = {}
+        for displayName, isSelected in pairs(selectedTable) do
+            if isSelected then
+                local itemName = displayName:match("^(.+) | ")
+                if itemName then
+                    selectedBuyItems[itemName] = true
+                end
+            end
+        end
+    end)
+
+    local function refreshDropdown(items)
+        if #items == 0 then return end
+        allDropdownValues = {}
+        for _, item in ipairs(items) do
+            table.insert(allDropdownValues, item.name .. " | " .. item.priceLabel)
+        end
+        pcall(function() SeedDropdown:SetValues(allDropdownValues) end)
+    end
+
+    local function startAutoScan()
+        if scanRunning then return end
+        scanRunning = true
+        task.spawn(function()
+            while scanRunning do
+                local items = getShopItems()
+                if #items > 0 then
+                    cachedShopItems = items
+                    refreshDropdown(items)
+                    Fluent:Notify({ Title = "Shop Scanned!", Content = #items .. " seeds found.", Duration = 2 })
+                    task.wait(2)
+                    local items2 = getShopItems()
+                    if #items2 > 0 then
+                        cachedShopItems = items2
+                        refreshDropdown(items2)
+                    end
+                    scanRunning = false
+                else
+                    task.wait(3)
+                end
+            end
+        end)
+    end
+
+    startAutoScan()
+
+    Tabs.Items:AddButton({
+        Title = "Force Rescan Shop",
+        Description = "Manually trigger a fresh scan of SeedShop",
+        Callback = function()
+            selectedBuyItems = {}
+            scanRunning = false
+            Fluent:Notify({ Title = "Rescanning...", Content = "Open SeedShop in-game!", Duration = 3 })
+            startAutoScan()
+        end
+    })
+
+    local function stopAutoBuy()
+        autoBuyOn = false
+    end
+
+    local function startAutoBuy()
+        if autoBuyOn then return end
+        autoBuyOn = true
+        task.spawn(function()
+            while autoBuyOn do
+                local hasItems = false
+                for _ in pairs(selectedBuyItems) do hasItems = true; break end
+
+                if hasItems then
+                    local cachedMoney = getPlayerMoney()
+                    local sf = getLiveSF()
+                    if sf then
+                        local itemsToBuy = {}
+                        for itemName in pairs(selectedBuyItems) do
+                            local frame = sf:FindFirstChild(itemName)
+                            if frame then
+                                local mi    = frame:FindFirstChild("MainInfo")
+                                local stTxt = mi and mi:FindFirstChild("StockText")
+                                local prTxt = mi and mi:FindFirstChild("PriceText")
+                                local stock = stTxt and parseStock(stTxt.Text) or 0
+                                local price = prTxt and parseMoney(prTxt.Text) or 0
+                                if stock > 0 and price > 0 then
+                                    table.insert(itemsToBuy, {name = itemName, price = price, stock = stock})
+                                end
+                            end
+                        end
+
+                        -- Sort by price descending (greedy approach for max money)
+                        table.sort(itemsToBuy, function(a, b) return a.price > b.price end)
+
+                        local totalPurchases = {}
+                        local willBuySomething = false
+
+                        for _, item in ipairs(itemsToBuy) do
+                            local canBuyAmount = math.floor(cachedMoney / item.price)
+                            local actualBuyAmount = math.min(canBuyAmount, item.stock)
+
+                            if actualBuyAmount > 0 then
+                                table.insert(totalPurchases, {name = item.name, amount = actualBuyAmount, price = item.price})
+                                cachedMoney = cachedMoney - (actualBuyAmount * item.price)
+                                willBuySomething = true
+                            end
+                        end
+
+                        if willBuySomething then
+                            local char = LocalPlayer.Character
+                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                local originalCFrame = hrp.CFrame
+                                -- Teleport to Shop
+                                hrp.CFrame = CFrame.new(177, 204, 672)
+                                task.wait(0.2) -- Wait for TP to register
+
+                                for _, purchase in ipairs(totalPurchases) do
+                                    for i = 1, purchase.amount do
+                                        if not autoBuyOn then break end
+                                        -- Fire remote with 0 delay using task.spawn
+                                        task.spawn(function()
+                                            pcall(function()
+                                                ReplicatedStorage:WaitForChild("RemoteEvents")
+                                                    :WaitForChild("PurchaseShopItem")
+                                                    :InvokeServer("SeedShop", purchase.name .. " Seed")
+                                            end)
+                                        end)
+                                    end
+                                    Fluent:Notify({ Title = "Purchased!", Content = "Bought " .. purchase.amount .. "x " .. purchase.name, Duration = 2 })
+                                end
+
+                                task.wait(0.5) -- Wait for purchases to process
+                                -- Teleport back
+                                hrp.CFrame = originalCFrame
+                                autoPlacePauseUntil = tick() + 3
+                            end
+                        end
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    end
+
+    local AutoBuyToggle = Tabs.Items:AddToggle("AutoBuy", {
+        Title = "Auto Buy",
+        Description = "Automatically purchases selected seeds when in stock",
+        Default = false
+    })
+    AutoBuyToggle:OnChanged(function(Value)
+        if Value then
+            local has = false
+            for _ in pairs(selectedBuyItems) do has = true; break end
+            if not has then
+                Fluent:Notify({ Title = "Warning", Content = "Select seeds first!", Duration = 3 })
+            end
+            startAutoBuy()
+            Fluent:Notify({ Title = "Auto Buy", Content = "ON", Duration = 2 })
+        else
+            stopAutoBuy()
+            Fluent:Notify({ Title = "Auto Buy", Content = "OFF", Duration = 2 })
+        end
+    end)
+
+    -- Sell Fruits
+    Tabs.Items:AddParagraph({ Title = "------------------ 🍎 Sell Fruits ------------------", Content = "" })
+
+    local function hasSellableItems()
+        local function checkFolder(folder)
+            if not folder then return false end
+            for _, item in ipairs(folder:GetChildren()) do
+                if item:IsA("Tool") then
+                    local name = item.Name
+                    if not string.match(name, "Seed$") and not string.match(name, "Shovel") then
+                        return true
+                    end
+                end
+            end
+            return false
+        end
+        return checkFolder(LocalPlayer:FindFirstChild("Backpack")) or checkFolder(LocalPlayer.Character)
+    end
+
+    local function performSell(isAuto)
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local originalCFrame = hrp.CFrame
+            -- Teleport to Sell Area
+            hrp.CFrame = CFrame.new(149, 204, 672)
+            task.wait(0.2) -- Wait for TP to register with the server
+            
+            local ok, err = pcall(function()
+                ReplicatedStorage:WaitForChild("RemoteEvents")
+                    :WaitForChild("SellItems"):InvokeServer("SellAll")
+            end)
+            
+            if ok then
+                if not isAuto then
+                    Fluent:Notify({ Title = "Sold!", Content = "All fruits sold.", Duration = 3 })
+                else
+                    Log("[AutoSell] Sold all fruits.")
+                end
+            else
+                WarnLog("[AutoSell] Error: " .. tostring(err))
+                if not isAuto then
+                    Fluent:Notify({ Title = "Error", Content = "Sell failed: " .. tostring(err), Duration = 3 })
+                end
+            end
+            
+            task.wait(0.2) -- Wait for sell to process before teleporting back
+            hrp.CFrame = originalCFrame
+            autoPlacePauseUntil = tick() + 3
+        end
+    end
+
+    Tabs.Items:AddButton({
+        Title = "Sell All Fruits",
+        Description = "Teleports to shop and sells everything instantly",
+        Callback = function()
+            if hasSellableItems() then
+                performSell(false)
+            else
+                Fluent:Notify({ Title = "Sell", Content = "No sellable items found.", Duration = 2 })
+            end
+        end
+    })
+
+    local autoSellEnabled = false
+    local AutoSellToggle = Tabs.Items:AddToggle("AutoSellFruits", {
+        Title = "Auto Sell Fruits",
+        Description = "Automatically teleports and sells fruits when inventory has them",
+        Default = false
+    })
+    AutoSellToggle:OnChanged(function(Value)
+        autoSellEnabled = Value
+        if Value then
+            Fluent:Notify({ Title = "Auto Sell", Content = "Enabled", Duration = 2 })
+            task.spawn(function()
+                while autoSellEnabled do
+                    if hasSellableItems() then
+                        performSell(true)
+                        task.wait(10) -- Wait 10 seconds after selling
+                    else
+                        task.wait(1) -- Check more frequently if no items
+                    end
+                end
+            end)
+        else
+            Fluent:Notify({ Title = "Auto Sell", Content = "Disabled", Duration = 2 })
+        end
+    end)
+end
+
+-- ══════════════════════════════════════════
+--               FARMING TAB
+-- ══════════════════════════════════════════
+Tabs.Farming:AddParagraph({ Title = "--------------- 🌾 Auto Harvest ---------------", Content = "" })
+
+local autoHarvestEnabled = false
+local minMultiplier      = 1.0
+local stopOnWeather      = true
+local harvestLoopRunning = false
+
+local function isWeatherActive()
+    if not stopOnWeather then return false end
+    local awc = ReplicatedStorage:FindFirstChild("ActiveWeatherContent")
+    return (awc and #awc:GetChildren() > 0)
+end
+
+local function processHarvest(target)
+    local multAttr = target:GetAttribute("RipenessMultiplier")
+    if not multAttr then return false end
+    local mult = tonumber(multAttr)
+    local safeMinMult = tonumber(minMultiplier) or 1
+    if mult and mult >= safeMinMult then
+        local prompt = target:FindFirstChild("HarvestPrompt", true)
+        if prompt and prompt.Enabled then
+            local handle = prompt.Parent
+            if handle and handle:IsA("BasePart") then
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = handle.CFrame + Vector3.new(0, 1.5, 0)
+                    task.wait(0.1)
+                    
+                    -- Fake view the prompt to make it active/visible
+                    local lookAtPos = handle.Position
+                    hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(lookAtPos.X, hrp.Position.Y, lookAtPos.Z))
+                    task.wait(0.1)
+                    
+                    if prompt and prompt.Enabled then
+                        prompt.HoldDuration = 0
+                        fireproximityprompt(prompt)
+                        task.wait(0.1)
+                    end
+                end
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function startHarvestLoop()
+    if harvestLoopRunning then return end
+    harvestLoopRunning = true
+    task.spawn(function()
+        while autoHarvestEnabled do
+            if isWeatherActive() or (tick() < autoPlacePauseUntil) then
+                task.wait(1)
+                continue
+            end
+            local ok, err = pcall(function()
+                local clientPlants = workspace:FindFirstChild("ClientPlants")
+                if not clientPlants then return end
+                for _, plant in ipairs(clientPlants:GetChildren()) do
+                    if not autoHarvestEnabled or isWeatherActive() or (tick() < autoPlacePauseUntil) then break end
+                    if tostring(plant:GetAttribute("OwnerUserId")) == tostring(LocalPlayerId) then
+                        if plant:GetAttribute("RipenessMultiplier") ~= nil then
+                            processHarvest(plant)
+                        else
+                            for _, fruit in ipairs(plant:GetChildren()) do
+                                if not autoHarvestEnabled or isWeatherActive() or (tick() < autoPlacePauseUntil) then break end
+                                if fruit:IsA("Model") then
+                                    processHarvest(fruit)
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            if not ok then
+                WarnLog("[Prime X Hub] Silent Error Avoided: ", tostring(err))
+            end
+            task.wait(1)
+        end
+        harvestLoopRunning = false
+    end)
+end
+
+local StopOnWeatherToggle = Tabs.Farming:AddToggle("StopOnWeather", {
+    Title = "Stop on Weather",
+    Description = "Pause harvest when weather is active",
+    Default = true
+})
+StopOnWeatherToggle:OnChanged(function(v)
+    stopOnWeather = v
+end)
+
+local AutoHarvestToggle = Tabs.Farming:AddToggle("AutoHarvest", {
+    Title = "Auto Harvest",
+    Description = "Automatically harvests your ripe fruits",
+    Default = false
+})
+AutoHarvestToggle:OnChanged(function(v)
+    autoHarvestEnabled = v
+    if v then
+        Fluent:Notify({ Title = "Auto Harvest", Content = "Started scanning for fruits...", Duration = 2 })
+        startHarvestLoop()
+    else
+        Fluent:Notify({ Title = "Auto Harvest", Content = "Stopped", Duration = 2 })
+    end
+end)
+
+Tabs.Farming:AddSlider("MinMultiplierSlider", {
+    Title = "Minimum Multiplier",
+    Description = "Harvest only fruits with RipenessMultiplier >= this value",
+    Default = 3, Min = 1, Max = 20, Rounding = 1,
+    Callback = function(v) minMultiplier = tonumber(v) or 1 end
+})
+
+Tabs.Farming:AddParagraph({ Title = "--------------- 🌱 Auto Place ---------------", Content = "" })
+
+local autoPlaceEnabled = false
+local autoPlaceLoopRunning = false
+
+local CFG = {
+    CELL_SIZE    = 3,
+    AREA_X       = 45,
+    AREA_Z       = 78,
+    PLANT_RADIUS = 5,
+    TP_OFFSET_Y  = 3,
+    EQUIP_WAIT   = 0.25,
+    PLANT_WAIT   = 0.35,
+    LOOP_WAIT    = 0.1,
+    Y_MIN        = 0,
+    Y_MAX        = 250,
+}
+
+local COLS = math.floor(CFG.AREA_X / CFG.CELL_SIZE)
+local ROWS = math.floor(CFG.AREA_Z / CFG.CELL_SIZE)
+
+local function getPlayerPlot()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then
+        WarnLog("[AutoFarm] workspace.Plots not found!")
+        return nil
+    end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        local ownerValue = plot:GetAttribute("Owner")
+        if ownerValue and tostring(ownerValue) == tostring(LocalPlayer.UserId) then
+            Log("[AutoFarm] Plot mila: " .. plot.Name)
+            return plot
+        end
+    end
+
+    WarnLog("[AutoFarm] Koi owned plot nahi mila. (UserId: " .. LocalPlayer.UserId .. ")")
+    return nil
+end
+
+local function getNearestBasePart(plot)
+    local plantableArea = plot:FindFirstChild("PlantableArea")
+    if not plantableArea then
+        WarnLog("[AutoFarm] PlantableArea nahi mili plot mein: " .. plot.Name)
+        return nil
+    end
+
+    local validParts = {}
+    for _, child in ipairs(plantableArea:GetChildren()) do
+        if child:IsA("BasePart") then
+            table.insert(validParts, child)
+        end
+    end
+
+    if #validParts == 0 then
+        WarnLog("[AutoFarm] PlantableArea mein koi valid BasePart nahi!")
+        return nil
+    end
+
+    if #validParts == 1 then
+        return validParts[1]
+    end
+
+    local nearest, nearestDist = nil, math.huge
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return validParts[1] end
+    
+    local playerPos = hrp.Position
+
+    for _, part in ipairs(validParts) do
+        local flatDist = Vector3.new(
+            part.Position.X - playerPos.X,
+            0,
+            part.Position.Z - playerPos.Z
+        ).Magnitude
+
+        if flatDist < nearestDist then
+            nearestDist = flatDist
+            nearest     = part
+        end
+    end
+
+    Log(string.format("[AutoFarm] BasePart choose ki: '%s' (Distance: %.1f studs)", nearest.Name, nearestDist))
+    return nearest
+end
+
+local function buildGridPositions(basePart)
+    local cf   = basePart.CFrame
+    local halfX = CFG.AREA_X / 2
+    local halfZ = CFG.AREA_Z / 2
+
+    local originLocal = Vector3.new(-halfX, 0, -halfZ)
+    local positions = {}
+
+    for row = 0, ROWS - 1 do
+        positions[row] = {}
+        for col = 0, COLS - 1 do
+            local localPos = originLocal + Vector3.new(
+                col * CFG.CELL_SIZE + CFG.CELL_SIZE / 2,
+                0,
+                row * CFG.CELL_SIZE + CFG.CELL_SIZE / 2
+            )
+            local worldPos = cf:PointToWorldSpace(localPos)
+            positions[row][col] = worldPos
+        end
+    end
+
+    return positions
+end
+
+local function getFilledCells(gridPositions, basePart)
+    local filled = {}
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    if not clientPlants then return filled end
+
+    local cf   = basePart.CFrame
+    local halfX = CFG.AREA_X / 2
+    local halfZ = CFG.AREA_Z / 2
+
+    for _, model in ipairs(clientPlants:GetChildren()) do
+        local pgp = model:GetAttribute("PlantGroundPosition")
+        if pgp then
+            local worldPlantPos = Vector3.new(pgp.X, basePart.Position.Y, pgp.Z)
+            local localPos = cf:PointToObjectSpace(worldPlantPos)
+
+            if  localPos.X >= -halfX and localPos.X <= halfX
+            and localPos.Z >= -halfZ and localPos.Z <= halfZ
+            then
+                local col = math.floor((localPos.X + halfX) / CFG.CELL_SIZE)
+                local row = math.floor((localPos.Z + halfZ) / CFG.CELL_SIZE)
+
+                col = math.clamp(col, 0, COLS - 1)
+                row = math.clamp(row, 0, ROWS - 1)
+
+                if not filled[row] then filled[row] = {} end
+                filled[row][col] = true
+            end
+        end
+    end
+
+    return filled
+end
+
+local function getEmptyCellsNearestFirst(gridPositions, filledCells)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    local playerPos = hrp.Position
+    local emptyCells = {}
+
+    for row = 0, ROWS - 1 do
+        for col = 0, COLS - 1 do
+            local isFilled = filledCells[row] and filledCells[row][col]
+            if not isFilled and gridPositions[row] and gridPositions[row][col] then
+                local worldPos = gridPositions[row][col]
+                local dist = (Vector3.new(worldPos.X, playerPos.Y, worldPos.Z)
+                             - Vector3.new(playerPos.X, playerPos.Y, playerPos.Z)).Magnitude
+                table.insert(emptyCells, {
+                    pos  = worldPos,
+                    dist = dist,
+                    row  = row,
+                    col  = col,
+                })
+            end
+        end
+    end
+
+    table.sort(emptyCells, function(a, b) return a.dist < b.dist end)
+    return emptyCells
+end
+
+local function teleportToPosition(targetPos)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local safePos = targetPos + Vector3.new(0, CFG.TP_OFFSET_Y, 0)
+        hrp.CFrame = CFrame.new(safePos)
+        task.wait(0.1)
+    end
+end
+
+local function getAllSeeds()
+    local seeds = {}
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") and tool.Name:match("Seed$") then
+                table.insert(seeds, tool)
+            end
+        end
+    end
+
+    local char = LocalPlayer.Character
+    if char then
+        for _, item in ipairs(char:GetChildren()) do
+            if item:IsA("Tool") and item.Name:match("Seed$") then
+                table.insert(seeds, item)
+            end
+        end
+    end
+
+    return seeds
+end
+
+local function equipSeed(tool)
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    
+    if not char or not hum then return false end
+
+    if tool.Parent == backpack then
+        hum:EquipTool(tool)
+    end
+
+    local timeout = 0
+    while tool.Parent ~= char and timeout < 1 do
+        task.wait(0.05)
+        timeout = timeout + 0.05
+    end
+
+    if tool.Parent ~= char then
+        WarnLog("[AutoFarm] Tool equip nahi hua: " .. tool.Name)
+        return false
+    end
+
+    task.wait(0.1)
+    return true
+end
+
+local function plantAtPosition(seedTool, cellWorldPos, basePart)
+    local char = LocalPlayer.Character
+    if seedTool.Parent ~= char then
+        WarnLog("[AutoFarm] Seed haath mein nahi hai, skip.")
+        return false
+    end
+
+    local plantName = seedTool.Name:gsub("^x%d+%s*", ""):gsub("%s*Seed$", "")
+
+    local plantVec = vector.create(
+        cellWorldPos.X,
+        basePart.Position.Y,
+        cellWorldPos.Z
+    )
+
+    local args = {
+        [1] = plantName,
+        [2] = plantVec
+    }
+
+    local success, err = pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed"):InvokeServer(unpack(args))
+    end)
+
+    if success then
+        Log(string.format("[AutoFarm] ✓ Planted '%s' at (%.2f, %.2f, %.2f)", plantName, plantVec.X, basePart.Position.Y, plantVec.Z))
+    else
+        WarnLog("[AutoFarm] Plant failed: " .. tostring(err))
+    end
+
+    return success
+end
+
+local function startAutoPlaceLoop()
+    if autoPlaceLoopRunning then return end
+    autoPlaceLoopRunning = true
+    task.spawn(function()
+        Log("[AutoFarm] Loop started.")
+        while autoPlaceEnabled do
+            if tick() < autoPlacePauseUntil then
+                task.wait(1)
+                continue
+            end
+
+            local plot = getPlayerPlot()
+            if not plot then
+                task.wait(3) continue
+            end
+
+            local basePart = getNearestBasePart(plot)
+            if not basePart then
+                task.wait(3) continue
+            end
+
+            local gridPositions = buildGridPositions(basePart)
+
+            local seeds = getAllSeeds()
+            if #seeds == 0 then
+                Log("[AutoFarm] Koi seed nahi. Waiting...")
+                task.wait(2)
+                continue
+            end
+
+            local filledCells = getFilledCells(gridPositions, basePart)
+            local emptyCells  = getEmptyCellsNearestFirst(gridPositions, filledCells)
+
+            if #emptyCells == 0 then
+                Log("[AutoFarm] Saare spots bhar gaye. Waiting...")
+                task.wait(2)
+                continue
+            end
+
+            local targetCell = emptyCells[1]
+            local targetPos  = targetCell.pos
+
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local flatDist = Vector3.new(
+                    targetPos.X - hrp.Position.X,
+                    0,
+                    targetPos.Z - hrp.Position.Z
+                ).Magnitude
+
+                if flatDist > CFG.PLANT_RADIUS then
+                    teleportToPosition(targetPos)
+                    task.wait(0.15)
+                end
+            end
+
+            local freshSeeds = getAllSeeds()
+            if #freshSeeds == 0 then
+                Log("[AutoFarm] Seeds khatam. Waiting...")
+                task.wait(2)
+                continue
+            end
+
+            -- Prioritize currently equipped seed
+            local seedToPlant = nil
+            local char = LocalPlayer.Character
+            if char then
+                for _, item in ipairs(char:GetChildren()) do
+                    if item:IsA("Tool") and item.Name:match("Seed$") then
+                        seedToPlant = item
+                        break
+                    end
+                end
+            end
+            
+            if not seedToPlant then
+                seedToPlant = freshSeeds[1]
+            end
+
+            local equipped = equipSeed(seedToPlant)
+            if not equipped then
+                task.wait(0.5)
+                continue
+            end
+
+            plantAtPosition(seedToPlant, targetPos, basePart)
+            task.wait(CFG.PLANT_WAIT)
+        end
+        Log("[AutoFarm] Loop band hua.")
+        autoPlaceLoopRunning = false
+    end)
+end
+
+local AutoPlaceToggle = Tabs.Farming:AddToggle("AutoPlace", {
+    Title = "Auto Place Seeds",
+    Description = "Automatically plants seeds from your backpack into your plot",
+    Default = false
+})
+AutoPlaceToggle:OnChanged(function(v)
+    autoPlaceEnabled = v
+    if v then
+        Fluent:Notify({ Title = "Auto Place", Content = "Started planting seeds...", Duration = 2 })
+        startAutoPlaceLoop()
+    else
+        Fluent:Notify({ Title = "Auto Place", Content = "Stopped", Duration = 2 })
+    end
+end)
+
+-- ══════════════════════════════════════════
+--               ABOUT US TAB
+-- ══════════════════════════════════════════
+Tabs.About:AddParagraph({
+    Title = "🌟 Prime X Hub",
+    Content = "Welcome to Prime X Hub! The ultimate script hub for Garden Horizon.\nEnjoy the best farming, teleporting, and movement features."
+})
+
+Tabs.About:AddButton({
+    Title = "Prime X Hub",
+    Description = "Script Hub - Join our community!",
+    Callback = function()
+        setclipboard("https://discord.gg/primexhub") -- Replace with actual link if needed
+        Fluent:Notify({ Title = "Copied!", Content = "Prime X Hub link copied to clipboard.", Duration = 3 })
+    end
+})
+
+Tabs.About:AddButton({
+    Title = "Robux Store",
+    Description = "Giveaway and free robux!",
+    Callback = function()
+        setclipboard("https://discord.gg/robuxstore") -- Replace with actual link if needed
+        Fluent:Notify({ Title = "Copied!", Content = "Robux Store link copied to clipboard.", Duration = 3 })
+    end
+})
+
+-- ══════════════════════════════════════════
+--           SAVE MANAGER & INTERFACE
+-- ══════════════════════════════════════════
+local MobileIconToggle = Tabs.Settings:AddToggle("MobileIconToggle", {
+    Title = "Mobile ICON",
+    Description = "Show floating minimize icon",
+    Default = true
+})
+MobileIconToggle:OnChanged(function(Value)
+    if ScreenGui then
+        ScreenGui.Enabled = Value
+    end
+end)
+
+local ConsoleLogsToggle = Tabs.Settings:AddToggle("ConsoleLogsToggle", {
+    Title = "Console Logs",
+    Description = "Enable or disable script print/warn logs",
+    Default = false
+})
+ConsoleLogsToggle:OnChanged(function(Value)
+    consoleLogsEnabled = Value
+end)
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/garden-horizon")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1)
+Fluent:Notify({ Title = "Prime X Hub", Content = "Loaded! Garden Horizon", Duration = 4 })
+SaveManager:LoadAutoloadConfig()
+
+-- ══ AUTO DESTROY ICON WHEN MAIN WINDOW CLOSES ══
+task.spawn(function()
+    while task.wait(1) do
+        if Fluent.Unloaded then
+            if ScreenGui then ScreenGui:Destroy() end
+            break
+        end
+    end
+end)
