@@ -1,1 +1,319 @@
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local CoreGui = game:GetService("CoreGui")
 
+local LocalPlayer = Players.LocalPlayer
+local WebhookURL = "https://bot-lyny.onrender.com/api/feedback"
+
+-- Cooldown System (15 Minutes)
+local COOLDOWN_TIME = 15 * 60
+local COOLDOWN_FILE = "PrimeX_Feedback_Cooldown.txt"
+
+local function getCooldown()
+    if isfile and readfile and isfile(COOLDOWN_FILE) then
+        local lastTime = tonumber(readfile(COOLDOWN_FILE))
+        if lastTime then
+            local timePassed = os.time() - lastTime
+            if timePassed < COOLDOWN_TIME then
+                return COOLDOWN_TIME - timePassed
+            end
+        end
+    end
+    return 0
+end
+
+local function setCooldown()
+    if writefile then
+        writefile(COOLDOWN_FILE, tostring(os.time()))
+    end
+end
+
+-- Check Cooldown before opening
+local currentCooldown = getCooldown()
+if currentCooldown > 0 then
+    local mins = math.ceil(currentCooldown / 60)
+    -- If they have a notification system, we could use it, but we'll just use a simple message or warn
+    warn("Feedback is on cooldown. Please wait " .. mins .. " minutes.")
+    
+    -- Try to use WindUI Notify if it exists in the environment
+    pcall(function()
+        if getgenv().WindUI then
+            getgenv().WindUI:Notify({
+                Title = "Cooldown Active",
+                Content = "Please wait " .. mins .. " minutes before sending another feedback.",
+                Duration = 5
+            })
+        end
+    end)
+    return
+end
+
+-- Create UI
+local FeedbackUI = Instance.new("ScreenGui")
+FeedbackUI.Name = "PrimeXFeedbackUI"
+FeedbackUI.Parent = CoreGui
+FeedbackUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = FeedbackUI
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 400, 0, 0) -- Starts at 0 height for animation
+MainFrame.ClipsDescendants = true
+MainFrame.BorderSizePixel = 0
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(40, 40, 40)
+UIStroke.Thickness = 1
+UIStroke.Parent = MainFrame
+
+-- Topbar
+local Topbar = Instance.new("Frame")
+Topbar.Name = "Topbar"
+Topbar.Parent = MainFrame
+Topbar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Topbar.Size = UDim2.new(1, 0, 0, 40)
+Topbar.BorderSizePixel = 0
+
+local TopbarCorner = Instance.new("UICorner")
+TopbarCorner.CornerRadius = UDim.new(0, 12)
+TopbarCorner.Parent = Topbar
+
+local TopbarFix = Instance.new("Frame")
+TopbarFix.Name = "TopbarFix"
+TopbarFix.Parent = Topbar
+TopbarFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+TopbarFix.Position = UDim2.new(0, 0, 1, -5)
+TopbarFix.Size = UDim2.new(1, 0, 0, 5)
+TopbarFix.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Parent = Topbar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Submit Feedback"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = Topbar
+CloseButton.BackgroundTransparency = 1
+CloseButton.Position = UDim2.new(1, -40, 0, 0)
+CloseButton.Size = UDim2.new(0, 40, 1, 0)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseButton.TextSize = 16
+
+-- Content Area
+local ContentArea = Instance.new("Frame")
+ContentArea.Name = "ContentArea"
+ContentArea.Parent = MainFrame
+ContentArea.BackgroundTransparency = 1
+ContentArea.Position = UDim2.new(0, 0, 0, 40)
+ContentArea.Size = UDim2.new(1, 0, 1, -40)
+
+local Desc = Instance.new("TextLabel")
+Desc.Name = "Desc"
+Desc.Parent = ContentArea
+Desc.BackgroundTransparency = 1
+Desc.Position = UDim2.new(0, 15, 0, 10)
+Desc.Size = UDim2.new(1, -30, 0, 40)
+Desc.Font = Enum.Font.Gotham
+Desc.Text = "Need an update, found a bug, or have an issue? Let us know below. (15 Min Cooldown)"
+Desc.TextColor3 = Color3.fromRGB(180, 180, 180)
+Desc.TextSize = 13
+Desc.TextWrapped = true
+Desc.TextXAlignment = Enum.TextXAlignment.Left
+Desc.TextYAlignment = Enum.TextYAlignment.Top
+
+local TextBoxFrame = Instance.new("Frame")
+TextBoxFrame.Name = "TextBoxFrame"
+TextBoxFrame.Parent = ContentArea
+TextBoxFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TextBoxFrame.Position = UDim2.new(0, 15, 0, 55)
+TextBoxFrame.Size = UDim2.new(1, -30, 0, 120)
+TextBoxFrame.BorderSizePixel = 0
+
+local TextBoxCorner = Instance.new("UICorner")
+TextBoxCorner.CornerRadius = UDim.new(0, 8)
+TextBoxCorner.Parent = TextBoxFrame
+
+local TextBoxStroke = Instance.new("UIStroke")
+TextBoxStroke.Color = Color3.fromRGB(50, 50, 50)
+TextBoxStroke.Thickness = 1
+TextBoxStroke.Parent = TextBoxFrame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Name = "TextBox"
+TextBox.Parent = TextBoxFrame
+TextBox.BackgroundTransparency = 1
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.Size = UDim2.new(1, -20, 1, -20)
+TextBox.Font = Enum.Font.Gotham
+TextBox.PlaceholderText = "Type your feedback here..."
+TextBox.Text = ""
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.TextSize = 14
+TextBox.TextWrapped = true
+TextBox.TextXAlignment = Enum.TextXAlignment.Left
+TextBox.TextYAlignment = Enum.TextYAlignment.Top
+TextBox.ClearTextOnFocus = false
+
+local SubmitButton = Instance.new("TextButton")
+SubmitButton.Name = "SubmitButton"
+SubmitButton.Parent = ContentArea
+SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106) -- Prime X Green
+SubmitButton.Position = UDim2.new(0, 15, 1, -50)
+SubmitButton.Size = UDim2.new(1, -30, 0, 35)
+SubmitButton.Font = Enum.Font.GothamBold
+SubmitButton.Text = "SUBMIT FEEDBACK"
+SubmitButton.TextColor3 = Color3.fromRGB(10, 10, 10)
+SubmitButton.TextSize = 14
+SubmitButton.AutoButtonColor = false
+
+local SubmitCorner = Instance.new("UICorner")
+SubmitCorner.CornerRadius = UDim.new(0, 8)
+SubmitCorner.Parent = SubmitButton
+
+-- Animations
+local function CloseUI()
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 400, 0, 0)})
+    tween:Play()
+    tween.Completed:Wait()
+    FeedbackUI:Destroy()
+end
+
+-- Open Animation
+TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 400, 0, 250)}):Play()
+
+-- Button Effects
+CloseButton.MouseEnter:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 80, 80)}):Play()
+end)
+CloseButton.MouseLeave:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+end)
+CloseButton.MouseButton1Click:Connect(CloseUI)
+
+SubmitButton.MouseEnter:Connect(function()
+    TweenService:Create(SubmitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(38, 204, 85)}):Play()
+end)
+SubmitButton.MouseLeave:Connect(function()
+    TweenService:Create(SubmitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(48, 255, 106)}):Play()
+end)
+
+-- Submit Logic
+local isSubmitting = false
+SubmitButton.MouseButton1Click:Connect(function()
+    if isSubmitting then return end
+    
+    local text = TextBox.Text
+    if text:gsub("%s+", "") == "" then
+        SubmitButton.Text = "PLEASE ENTER TEXT"
+        SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        task.wait(1.5)
+        SubmitButton.Text = "SUBMIT FEEDBACK"
+        SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106)
+        return
+    end
+    
+    isSubmitting = true
+    SubmitButton.Text = "SENDING..."
+    
+    task.spawn(function()
+        local gameName = "Unknown Game"
+        pcall(function()
+            local info = MarketplaceService:GetProductInfo(game.PlaceId)
+            gameName = info.Name
+        end)
+        
+        local data = {
+            player = LocalPlayer.Name,
+            gameName = gameName,
+            text = text
+        }
+        
+        local success, response = pcall(function()
+            local requestFunc = syn and syn.request or http and http.request or request
+            if requestFunc then
+                return requestFunc({
+                    Url = WebhookURL,
+                    Method = "POST",
+                    Headers = {
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = HttpService:JSONEncode(data)
+                })
+            else
+                -- Fallback if no request function
+                error("No request function found")
+            end
+        end)
+        
+        if success then
+            setCooldown()
+            SubmitButton.Text = "SENT SUCCESSFULLY!"
+            SubmitButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+            task.wait(1)
+            CloseUI()
+        else
+            SubmitButton.Text = "FAILED TO SEND"
+            SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(2)
+            SubmitButton.Text = "SUBMIT FEEDBACK"
+            SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106)
+            isSubmitting = false
+        end
+    end)
+end)
+
+-- Make draggable
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Topbar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+Topbar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
