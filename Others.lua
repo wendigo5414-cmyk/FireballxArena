@@ -78,11 +78,13 @@ return function(Window, Tabs, WindUI)
             end
         end
 
-        -- Apply stats when character spawns/respawns
-        LocalPlayer.CharacterAdded:Connect(function(character)
-            character:WaitForChild("Humanoid")
-            applyWalkspeed(character)
-            applyJumpHeight(character)
+        -- Apply stats continuously every 2 seconds
+        task.spawn(function()
+            while true do
+                task.wait(2)
+                applyWalkspeed(LocalPlayer.Character)
+                applyJumpHeight(LocalPlayer.Character)
+            end
         end)
 
         Tabs.Movement:Slider({
