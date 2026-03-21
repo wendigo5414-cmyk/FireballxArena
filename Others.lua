@@ -92,7 +92,7 @@ return function(Window, Tabs, WindUI)
             Title = "Speed Slider",
             Desc = "Change your WalkSpeed",
             Step = 1,
-            Value = { Min = 16, Max = 200, Default = 16 },
+            Value = { Min = 16, Max = 400, Default = 16 },
             Callback = function(Value)
                 currentWalkspeed = Value
                 applyWalkspeed(LocalPlayer.Character)
