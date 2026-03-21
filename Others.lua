@@ -453,13 +453,8 @@ return function(Window, Tabs, WindUI)
         })
 
         Tabs.AboutUs:Paragraph({
-            Title = "🐛 Reporting a Bug",
-            Desc = "Please explain clearly: What exactly is not working? When does it happen? Does it occur at a specific time or after a certain action? Provide as much detail as possible."
-        })
-
-        Tabs.AboutUs:Paragraph({
-            Title = "💡 Requesting a Feature",
-            Desc = "Please think your idea through carefully and ensure it makes logical sense for the game. Don't worry about whether it is possible to code—just share your idea, and I will figure out the rest!"
+            Title = "Feedback Guidelines",
+            Desc = "🐛 Reporting a Bug:\nPlease explain clearly: What exactly is not working? When does it happen? Does it occur at a specific time or after a certain action? Provide as much detail as possible.\n\n💡 Requesting a Feature:\nPlease think your idea through carefully and ensure it makes logical sense for the game. Don't worry about whether it is possible to code—just share your idea, and I will figure out the rest!"
         })
     end
 
