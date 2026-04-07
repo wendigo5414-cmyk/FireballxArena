@@ -65,6 +65,7 @@ return function(Window, Tabs, WindUI)
 
         local currentWalkspeed = 16
         local currentJumpHeight = 7
+        local speedJumpEnabled = false
 
         local function applyWalkspeed(character)
             if character and character:FindFirstChild("Humanoid") then
@@ -78,14 +79,36 @@ return function(Window, Tabs, WindUI)
             end
         end
 
-        -- Apply stats continuously every 2 seconds
+        -- Apply stats continuously every 0.5 seconds if enabled
         task.spawn(function()
             while true do
-                task.wait(2)
-                applyWalkspeed(LocalPlayer.Character)
-                applyJumpHeight(LocalPlayer.Character)
+                task.wait(0.5)
+                if speedJumpEnabled then
+                    applyWalkspeed(LocalPlayer.Character)
+                    applyJumpHeight(LocalPlayer.Character)
+                end
             end
         end)
+
+        Tabs.Movement:Toggle({
+            Flag = "SpeedJumpToggle",
+            Title = "Enable Speed & Jump",
+            Desc = "Applies slider values every 0.5 seconds",
+            Value = false,
+            Callback = function(Value)
+                speedJumpEnabled = Value
+                if Value then
+                    applyWalkspeed(LocalPlayer.Character)
+                    applyJumpHeight(LocalPlayer.Character)
+                else
+                    -- Reset to default when turned off
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                        LocalPlayer.Character.Humanoid.JumpHeight = 7
+                    end
+                end
+            end
+        })
 
         Tabs.Movement:Slider({
             Flag = "SpeedSlider",
@@ -95,7 +118,9 @@ return function(Window, Tabs, WindUI)
             Value = { Min = 16, Max = 400, Default = 16 },
             Callback = function(Value)
                 currentWalkspeed = Value
-                applyWalkspeed(LocalPlayer.Character)
+                if speedJumpEnabled then
+                    applyWalkspeed(LocalPlayer.Character)
+                end
             end
         })
 
@@ -107,7 +132,9 @@ return function(Window, Tabs, WindUI)
             Value = { Min = 7, Max = 100, Default = 7 },
             Callback = function(Value)
                 currentJumpHeight = Value
-                applyJumpHeight(LocalPlayer.Character)
+                if speedJumpEnabled then
+                    applyJumpHeight(LocalPlayer.Character)
+                end
             end
         })
 
@@ -453,8 +480,13 @@ return function(Window, Tabs, WindUI)
         })
 
         Tabs.AboutUs:Paragraph({
-            Title = "Feedback Guidelines",
-            Desc = "🐛 Reporting a Bug:\nPlease explain clearly: What exactly is not working? When does it happen? Does it occur at a specific time or after a certain action? Provide as much detail as possible.\n\n💡 Requesting a Feature:\nPlease think your idea through carefully and ensure it makes logical sense for the game. Don't worry about whether it is possible to code—just share your idea, and I will figure out the rest!"
+            Title = "🐛 Reporting a Bug",
+            Desc = "Please explain clearly: What exactly is not working? When does it happen? Does it occur at a specific time or after a certain action? Provide as much detail as possible."
+        })
+
+        Tabs.AboutUs:Paragraph({
+            Title = "💡 Requesting a Feature",
+            Desc = "Please think your idea through carefully and ensure it makes logical sense for the game. Don't worry about whether it is possible to code—just share your idea, and I will figure out the rest!"
         })
     end
 
