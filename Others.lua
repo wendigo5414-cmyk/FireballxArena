@@ -25,6 +25,8 @@ return function(Window, Tabs, WindUI)
                         if element and element.Flag then
                             if Window and type(Window.Flags) == "table" then Window.Flags[element.Flag] = element end
                             if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[element.Flag] = element end
+                            if Window and type(Window.PendingFlags) == "table" then Window.PendingFlags[element.Flag] = element end
+                            if WindUI and type(WindUI.PendingFlags) == "table" then WindUI.PendingFlags[element.Flag] = element end
                         end
                     end)
                     return element
@@ -66,6 +68,8 @@ return function(Window, Tabs, WindUI)
                     if obj.Flag then
                         if Window and type(Window.Flags) == "table" then Window.Flags[obj.Flag] = obj end
                         if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[obj.Flag] = obj end
+                        if Window and type(Window.PendingFlags) == "table" then Window.PendingFlags[obj.Flag] = obj end
+                        if WindUI and type(WindUI.PendingFlags) == "table" then WindUI.PendingFlags[obj.Flag] = obj end
                     end
                 end)
             end
