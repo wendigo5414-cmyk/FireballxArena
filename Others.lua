@@ -598,6 +598,51 @@ return function(Window, Tabs, WindUI)
             end
         })
         
+        Tabs.Settings:Button({
+            Title = "Set As Auto Load (Other...)",
+            Desc = "Mark selected config to automatically load next time",
+            Icon = "solar:check-circle-bold",
+            Callback = function()
+                if ConfigName == "" then
+                    WindUI:Notify({Title = "Error", Content = "Select a valid config first.", Duration = 3})
+                    return
+                end
+                pcall(function()
+                    local autoloads = {}
+                    if isfile and isfile(autoloadFile) then
+                        autoloads = HttpService:JSONDecode(readfile(autoloadFile))
+                    end
+                    autoloads[tostring(game.PlaceId)] = ConfigName
+                    if writefile then
+                        writefile(autoloadFile, HttpService:JSONEncode(autoloads))
+                        WindUI:Notify({Title = "Auto Load Enabled!", Content = "'" .. ConfigName .. "' will load automatically next time.", Duration = 4})
+                    end
+                end)
+            end
+        })
+
+        -- Auto-load logic executed once 
+        task.spawn(function()
+            task.wait(1.5) -- small delay to ensure toggles are registered
+            local loadedAuto = false
+            pcall(function()
+                if isfile and isfile(autoloadFile) then
+                    local autoloads = HttpService:JSONDecode(readfile(autoloadFile))
+                    local target = autoloads[tostring(game.PlaceId)]
+                    if target then
+                        if LoadConfig(target) then
+                            loadedAuto = true
+                            WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
+                        end
+                    end
+                end
+            end)
+            
+            -- Fallback to default if no valid auto-load was triggered
+            if not loadedAuto and table.find(GetGameConfigs(), "default") then
+                LoadConfig("default")
+            end
+        end)
     end
 
     -- ══════════════════════════════════════════
