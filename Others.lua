@@ -23,10 +23,11 @@ return function(Window, Tabs, WindUI)
                     -- Ensure it gets pushed to WindUI state
                     pcall(function()
                         if element and element.Flag then
-                            if Window and type(Window.Flags) == "table" then Window.Flags[element.Flag] = element end
-                            if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[element.Flag] = element end
-                            if Window and type(Window.PendingFlags) == "table" then Window.PendingFlags[element.Flag] = element end
-                            if WindUI and type(WindUI.PendingFlags) == "table" then WindUI.PendingFlags[element.Flag] = element end
+                            if not Window.Flags then Window.Flags = {} end
+                            Window.Flags[element.Flag] = element
+
+                            if not WindUI.Flags then WindUI.Flags = {} end
+                            WindUI.Flags[element.Flag] = element
                         end
                     end)
                     return element
@@ -66,10 +67,11 @@ return function(Window, Tabs, WindUI)
                 end
                 pcall(function()
                     if obj.Flag then
-                        if Window and type(Window.Flags) == "table" then Window.Flags[obj.Flag] = obj end
-                        if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[obj.Flag] = obj end
-                        if Window and type(Window.PendingFlags) == "table" then Window.PendingFlags[obj.Flag] = obj end
-                        if WindUI and type(WindUI.PendingFlags) == "table" then WindUI.PendingFlags[obj.Flag] = obj end
+                        if not Window.Flags then Window.Flags = {} end
+                        Window.Flags[obj.Flag] = obj
+
+                        if not WindUI.Flags then WindUI.Flags = {} end
+                        WindUI.Flags[obj.Flag] = obj
                     end
                 end)
             end
@@ -506,8 +508,16 @@ return function(Window, Tabs, WindUI)
                 local targetObj = Window.Flags or WindUI.Flags or {}
                 for key, val in pairs(savedSettings) do
                     local uiElement = targetObj[key]
-                    if uiElement and type(uiElement.Set) == "function" then
-                        pcall(function() uiElement:Set(val) end)
+                    if uiElement then
+                        if type(uiElement.Set) == "function" then
+                            pcall(function() uiElement:Set(val) end)
+                        elseif type(uiElement.SetValue) == "function" then
+                            pcall(function() uiElement:SetValue(val) end)
+                        elseif type(uiElement.Callback) == "function" then
+                            if uiElement.Value ~= nil then uiElement.Value = val end
+                            if uiElement.State ~= nil then uiElement.State = val end
+                            pcall(uiElement.Callback, val)
+                        end
                     end
                 end
                 return true
@@ -588,51 +598,6 @@ return function(Window, Tabs, WindUI)
             end
         })
         
-        Tabs.Settings:Button({
-            Title = "Set As Auto Load (Other...)",
-            Desc = "Mark selected config to automatically load next time",
-            Icon = "solar:check-circle-bold",
-            Callback = function()
-                if ConfigName == "" then
-                    WindUI:Notify({Title = "Error", Content = "Select a valid config first.", Duration = 3})
-                    return
-                end
-                pcall(function()
-                    local autoloads = {}
-                    if isfile and isfile(autoloadFile) then
-                        autoloads = HttpService:JSONDecode(readfile(autoloadFile))
-                    end
-                    autoloads[tostring(game.PlaceId)] = ConfigName
-                    if writefile then
-                        writefile(autoloadFile, HttpService:JSONEncode(autoloads))
-                        WindUI:Notify({Title = "Auto Load Enabled!", Content = "'" .. ConfigName .. "' will load automatically next time.", Duration = 4})
-                    end
-                end)
-            end
-        })
-
-        -- Auto-load logic executed once 
-        task.spawn(function()
-            task.wait(1.5) -- small delay to ensure toggles are registered
-            local loadedAuto = false
-            pcall(function()
-                if isfile and isfile(autoloadFile) then
-                    local autoloads = HttpService:JSONDecode(readfile(autoloadFile))
-                    local target = autoloads[tostring(game.PlaceId)]
-                    if target then
-                        if LoadConfig(target) then
-                            loadedAuto = true
-                            WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
-                        end
-                    end
-                end
-            end)
-            
-            -- Fallback to default if no valid auto-load was triggered
-            if not loadedAuto and table.find(GetGameConfigs(), "default") then
-                LoadConfig("default")
-            end
-        end)
     end
 
     -- ══════════════════════════════════════════
