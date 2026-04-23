@@ -2,8 +2,7 @@ return function(Window, Tabs, WindUI)
     -- ══════════════════════════════════════════
     --        AUTO-FLAG INJECTION SYSTEM
     -- ══════════════════════════════════════════
-    -- Automatically assigns Flags to all UI elements so ConfigManager can save them,
-    -- even if they are defined without Flags in the external scripts.
+    -- 1. Proactive hooking (for UI components created AFTER this script loads)
     local function hookContainer(containerObj, tabPrefix)
         if type(containerObj) ~= "table" then return end
         
@@ -13,9 +12,17 @@ return function(Window, Tabs, WindUI)
             if type(originalMethod) == "function" then
                 containerObj[method] = function(self, options)
                     if options and type(options) == "table" and not options.Flag and options.Title then
-                        options.Flag = "AutoFlag_" .. tabPrefix .. "_" .. tostring(options.Title):gsub("[^%w]", "")
+                        options.Flag = "PXHRetro_" .. tostring(options.Title):gsub("[^%w]", "")
                     end
-                    return originalMethod(self, options)
+                    local element = originalMethod(self, options)
+                    -- Ensure it gets pushed to WindUI state
+                    pcall(function()
+                        if element and element.Flag then
+                            if Window and type(Window.Flags) == "table" then Window.Flags[element.Flag] = element end
+                            if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[element.Flag] = element end
+                        end
+                    end)
+                    return element
                 end
             end
         end
@@ -35,6 +42,37 @@ return function(Window, Tabs, WindUI)
     for tabName, tabObj in pairs(Tabs) do
         hookContainer(tabObj, tabName)
     end
+    
+    -- 2. Retroactive injection (for UI components created BEFORE this script loads, e.g. legacy scripts)
+    local function retrofitElements()
+        local seen = {}
+        local function scan(obj)
+            if type(obj) ~= "table" or seen[obj] then return end
+            seen[obj] = true
+
+            if obj.Type and obj.Title and type(obj.Callback) == "function" then
+                if not obj.Flag then
+                    obj.Flag = "PXHRetro_" .. tostring(obj.Title):gsub("[^%w]", "")
+                end
+                pcall(function()
+                    if obj.Flag then
+                        if Window and type(Window.Flags) == "table" then Window.Flags[obj.Flag] = obj end
+                        if WindUI and type(WindUI.Flags) == "table" then WindUI.Flags[obj.Flag] = obj end
+                    end
+                end)
+            end
+
+            for k, v in pairs(obj) do
+                if type(v) == "table" then
+                    pcall(scan, v)
+                end
+            end
+        end
+        pcall(scan, Window)
+        pcall(scan, Tabs)
+        pcall(scan, WindUI)
+    end
+    retrofitElements()
 
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
@@ -387,10 +425,21 @@ return function(Window, Tabs, WindUI)
         local function GetGameConfigs()
             local prefix = tostring(game.PlaceId) .. "_"
             local list = {}
+            local seen = {}
             pcall(function()
                 for _, cfg in ipairs(ConfigManager:AllConfigs()) do
                     if string.sub(cfg, 1, string.len(prefix)) == prefix then
-                        table.insert(list, string.sub(cfg, string.len(prefix) + 1))
+                        local stripped = string.sub(cfg, string.len(prefix) + 1)
+                        if not seen[stripped] then
+                            table.insert(list, stripped)
+                            seen[stripped] = true
+                        end
+                    elseif not string.match(cfg, "^%d+_") then
+                        -- Legacy backward compatibility: Include completely unprefixed configs
+                        if not seen[cfg] then
+                            table.insert(list, cfg)
+                            seen[cfg] = true
+                        end
                     end
                 end
             end)
@@ -447,11 +496,31 @@ return function(Window, Tabs, WindUI)
             Icon = "solar:upload-bold",
             Callback = function()
                 if ConfigName == "" then return end
-                Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. ConfigName)
-                if Window.CurrentConfig:Load() then
+                
+                local success = false
+                pcall(function()
+                    Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. ConfigName)
+                    success = Window.CurrentConfig:Load()
+                end)
+                
+                -- Fallback for un-prefixed (legacy) configs
+                if not success then
+                    pcall(function()
+                        Window.CurrentConfig = ConfigManager:CreateConfig(ConfigName)
+                        success = Window.CurrentConfig:Load()
+                    end)
+                end
+                
+                if success then
                     WindUI:Notify({
                         Title = "Config Loaded",
                         Content = "Config '" .. ConfigName .. "' loaded successfully.",
+                        Duration = 3
+                    })
+                else
+                    WindUI:Notify({
+                        Title = "Error",
+                        Content = "Could not load '" .. ConfigName .. "'.",
                         Duration = 3
                     })
                 end
