@@ -11,8 +11,13 @@ return function(Window, Tabs, WindUI)
             local originalMethod = containerObj[method]
             if type(originalMethod) == "function" then
                 containerObj[method] = function(self, options)
-                    if options and type(options) == "table" and not options.Flag and options.Title then
-                        options.Flag = "PXHRetro_" .. tostring(options.Title):gsub("[^%w]", "")
+                    if options and type(options) == "table" and options.Title then
+                        if not options.Flag then
+                            options.Flag = "PXHRetro_" .. tostring(options.Title):gsub("[^%w]", "")
+                        end
+                        if options.Save == nil then
+                            options.Save = true
+                        end
                     end
                     local element = originalMethod(self, options)
                     -- Ensure it gets pushed to WindUI state
@@ -53,6 +58,9 @@ return function(Window, Tabs, WindUI)
             if obj.Type and obj.Title and type(obj.Callback) == "function" then
                 if not obj.Flag then
                     obj.Flag = "PXHRetro_" .. tostring(obj.Title):gsub("[^%w]", "")
+                end
+                if obj.Save == nil then
+                    obj.Save = true
                 end
                 pcall(function()
                     if obj.Flag then
