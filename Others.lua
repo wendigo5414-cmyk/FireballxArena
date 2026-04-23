@@ -1,4 +1,41 @@
 return function(Window, Tabs, WindUI)
+    -- ══════════════════════════════════════════
+    --        AUTO-FLAG INJECTION SYSTEM
+    -- ══════════════════════════════════════════
+    -- Automatically assigns Flags to all UI elements so ConfigManager can save them,
+    -- even if they are defined without Flags in the external scripts.
+    local function hookContainer(containerObj, tabPrefix)
+        if type(containerObj) ~= "table" then return end
+        
+        local methodsToHook = {"Toggle", "Slider", "Dropdown", "Input", "Colorpicker", "Keybind"}
+        for _, method in ipairs(methodsToHook) do
+            local originalMethod = containerObj[method]
+            if type(originalMethod) == "function" then
+                containerObj[method] = function(self, options)
+                    if options and type(options) == "table" and not options.Flag and options.Title then
+                        options.Flag = "AutoFlag_" .. tabPrefix .. "_" .. tostring(options.Title):gsub("[^%w]", "")
+                    end
+                    return originalMethod(self, options)
+                end
+            end
+        end
+        
+        local originalSection = containerObj.Section
+        if type(originalSection) == "function" then
+            containerObj.Section = function(self, options)
+                local sectionObj = originalSection(self, options)
+                if sectionObj and type(sectionObj) == "table" then
+                    hookContainer(sectionObj, tabPrefix)
+                end
+                return sectionObj
+            end
+        end
+    end
+    
+    for tabName, tabObj in pairs(Tabs) do
+        hookContainer(tabObj, tabName)
+    end
+
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local RunService = game:GetService("RunService")
@@ -93,7 +130,6 @@ return function(Window, Tabs, WindUI)
         Tabs.Movement:Toggle({
             Flag = "SpeedJumpToggle",
             Title = "Enable Speed & Jump",
-            Desc = "Applies slider values every 0.5 seconds",
             Value = false,
             Callback = function(Value)
                 speedJumpEnabled = Value
@@ -344,7 +380,22 @@ return function(Window, Tabs, WindUI)
         })
 
         local ConfigManager = Window.ConfigManager
-        local ConfigName = "default"
+        local ConfigName = ""
+        local HttpService = game:GetService("HttpService")
+        local autoloadFile = "PXH_AutoLoad.json"
+
+        local function GetGameConfigs()
+            local prefix = tostring(game.PlaceId) .. "_"
+            local list = {}
+            pcall(function()
+                for _, cfg in ipairs(ConfigManager:AllConfigs()) do
+                    if string.sub(cfg, 1, string.len(prefix)) == prefix then
+                        table.insert(list, string.sub(cfg, string.len(prefix) + 1))
+                    end
+                end
+            end)
+            return list
+        end
 
         local ConfigNameInput = Tabs.Settings:Input({
             Title = "Config Name",
@@ -355,13 +406,13 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        local AllConfigs = ConfigManager:AllConfigs()
-        local DefaultValue = table.find(AllConfigs, ConfigName) and ConfigName or nil
+        local GameConfigs = GetGameConfigs()
+        local DefaultValue = table.find(GameConfigs, ConfigName) and ConfigName or nil
 
         local AllConfigsDropdown = Tabs.Settings:Dropdown({
             Title = "All Configs",
             Desc = "Select an existing config",
-            Values = AllConfigs,
+            Values = GameConfigs,
             Value = DefaultValue,
             Callback = function(value)
                 ConfigName = value
@@ -374,15 +425,19 @@ return function(Window, Tabs, WindUI)
             Desc = "Saves the current settings",
             Icon = "solar:diskette-bold",
             Callback = function()
-                Window.CurrentConfig = ConfigManager:Config(ConfigName)
+                if ConfigName == "" then
+                    WindUI:Notify({Title = "Error", Content = "Enter a config name first.", Duration = 3})
+                    return
+                end
+                Window.CurrentConfig = ConfigManager:Config(tostring(game.PlaceId) .. "_" .. ConfigName)
                 if Window.CurrentConfig:Save() then
                     WindUI:Notify({
                         Title = "Config Saved",
-                        Content = "Config '" .. ConfigName .. "' saved successfully",
+                        Content = "Config '" .. ConfigName .. "' saved successfully.",
                         Duration = 3
                     })
                 end
-                AllConfigsDropdown:Refresh(ConfigManager:AllConfigs())
+                AllConfigsDropdown:Refresh(GetGameConfigs())
             end
         })
 
@@ -391,21 +446,62 @@ return function(Window, Tabs, WindUI)
             Desc = "Loads the selected settings",
             Icon = "solar:upload-bold",
             Callback = function()
-                Window.CurrentConfig = ConfigManager:CreateConfig(ConfigName)
+                if ConfigName == "" then return end
+                Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. ConfigName)
                 if Window.CurrentConfig:Load() then
                     WindUI:Notify({
                         Title = "Config Loaded",
-                        Content = "Config '" .. ConfigName .. "' loaded successfully",
+                        Content = "Config '" .. ConfigName .. "' loaded successfully.",
                         Duration = 3
                     })
                 end
             end
         })
         
-        -- Auto-load the default config if it exists
+        Tabs.Settings:Button({
+            Title = "Set As Auto Load (Other...)",
+            Desc = "Mark selected config to automatically load next time",
+            Icon = "solar:check-circle-bold",
+            Callback = function()
+                if ConfigName == "" then
+                    WindUI:Notify({Title = "Error", Content = "Select a valid config first.", Duration = 3})
+                    return
+                end
+                pcall(function()
+                    local autoloads = {}
+                    if isfile and isfile(autoloadFile) then
+                        autoloads = HttpService:JSONDecode(readfile(autoloadFile))
+                    end
+                    autoloads[tostring(game.PlaceId)] = ConfigName
+                    if writefile then
+                        writefile(autoloadFile, HttpService:JSONEncode(autoloads))
+                        WindUI:Notify({Title = "Auto Load Enabled!", Content = "'" .. ConfigName .. "' will load automatically next time.", Duration = 4})
+                    end
+                end)
+            end
+        })
+
+        -- Auto-load logic executed once 
         task.spawn(function()
-            if table.find(ConfigManager:AllConfigs(), "default") then
-                Window.CurrentConfig = ConfigManager:CreateConfig("default")
+            task.wait(1.5) -- small delay to ensure toggles are registered
+            local loadedAuto = false
+            pcall(function()
+                if isfile and isfile(autoloadFile) then
+                    local autoloads = HttpService:JSONDecode(readfile(autoloadFile))
+                    local target = autoloads[tostring(game.PlaceId)]
+                    if target then
+                        Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. target)
+                        if Window.CurrentConfig:Load() then
+                            loadedAuto = true
+                            WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
+                        end
+                    end
+                end
+            end)
+            
+            -- Fallback to default if no valid auto-load was triggered
+            if not loadedAuto and table.find(GetGameConfigs(), "default") then
+                Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_default")
                 Window.CurrentConfig:Load()
             end
         end)
