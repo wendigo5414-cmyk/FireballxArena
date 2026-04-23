@@ -429,39 +429,99 @@ return function(Window, Tabs, WindUI)
             Title = "Configuration",
         })
 
-        local ConfigManager = Window.ConfigManager
-        local ConfigName = ""
+        -- Custom Configuration System
+        local ConfigFolder = "PXH_Configs"
         local HttpService = game:GetService("HttpService")
         local autoloadFile = "PXH_AutoLoad.json"
+
+        if isfolder and not isfolder(ConfigFolder) then
+            pcall(makefolder, ConfigFolder)
+        end
 
         local function GetGameConfigs()
             local prefix = tostring(game.PlaceId) .. "_"
             local list = {}
             local seen = {}
-            pcall(function()
-                for _, cfg in ipairs(ConfigManager:AllConfigs()) do
-                    if string.sub(cfg, 1, string.len(prefix)) == prefix then
-                        local stripped = string.sub(cfg, string.len(prefix) + 1)
-                        if not seen[stripped] then
-                            table.insert(list, stripped)
-                            seen[stripped] = true
-                        end
-                    elseif not string.match(cfg, "^%d+_") then
-                        -- Legacy backward compatibility: Include completely unprefixed configs
-                        if not seen[cfg] then
-                            table.insert(list, cfg)
-                            seen[cfg] = true
+            if listfiles then
+                pcall(function()
+                    for _, file in ipairs(listfiles(ConfigFolder)) do
+                        -- Extract filename without path and without .json extension
+                        local filename = string.match(file, "([^/\\]+)%.json$")
+                        if filename then
+                            if string.sub(filename, 1, string.len(prefix)) == prefix then
+                                local stripped = string.sub(filename, string.len(prefix) + 1)
+                                if not seen[stripped] then
+                                    table.insert(list, stripped)
+                                    seen[stripped] = true
+                                end
+                            elseif not string.match(filename, "^%d+_") then
+                                if not seen[filename] then
+                                    table.insert(list, filename)
+                                    seen[filename] = true
+                                end
+                            end
                         end
                     end
-                end
-            end)
+                end)
+            end
             return list
         end
+        
+        local function SaveConfig(configName)
+            if not writefile then return false end
+            local settingsToSave = {}
+            local targetObj = Window.Flags or WindUI.Flags or {}
+            
+            for key, obj in pairs(targetObj) do
+                if type(obj) == "table" and obj.Save ~= false then
+                    -- Detect WindUI elements values. They usually use .Value or .State, etc.
+                    local val = obj.Value
+                    if val == nil then val = obj.State end
+                    -- Save it
+                    settingsToSave[key] = val
+                end
+            end
+            
+            local success, err = pcall(function()
+                local path = ConfigFolder .. "/" .. tostring(game.PlaceId) .. "_" .. configName .. ".json"
+                writefile(path, HttpService:JSONEncode(settingsToSave))
+            end)
+            return success
+        end
+
+        local function LoadConfig(configName)
+            if not isfile or not readfile then return false end
+            
+            local path = ConfigFolder .. "/" .. tostring(game.PlaceId) .. "_" .. configName .. ".json"
+            if not isfile(path) then 
+                path = ConfigFolder .. "/" .. configName .. ".json" -- legacy fallback
+                if not isfile(path) then return false end
+            end
+            
+            local success, savedSettings = pcall(function()
+                return HttpService:JSONDecode(readfile(path))
+            end)
+            
+            if success and type(savedSettings) == "table" then
+                local targetObj = Window.Flags or WindUI.Flags or {}
+                for key, val in pairs(savedSettings) do
+                    local uiElement = targetObj[key]
+                    if uiElement and type(uiElement.Set) == "function" then
+                        pcall(function() uiElement:Set(val) end)
+                    end
+                end
+                return true
+            end
+            return false
+        end
+
+        local ConfigName = ""
 
         local ConfigNameInput = Tabs.Settings:Input({
             Title = "Config Name",
             Desc = "Enter config name to save/load",
             Icon = "solar:file-text-bold",
+            Save = false,
             Callback = function(value)
                 ConfigName = value
             end
@@ -475,6 +535,7 @@ return function(Window, Tabs, WindUI)
             Desc = "Select an existing config",
             Values = GameConfigs,
             Value = DefaultValue,
+            Save = false,
             Callback = function(value)
                 ConfigName = value
                 ConfigNameInput:Set(value)
@@ -490,13 +551,15 @@ return function(Window, Tabs, WindUI)
                     WindUI:Notify({Title = "Error", Content = "Enter a config name first.", Duration = 3})
                     return
                 end
-                Window.CurrentConfig = ConfigManager:Config(tostring(game.PlaceId) .. "_" .. ConfigName)
-                if Window.CurrentConfig:Save() then
+                
+                if SaveConfig(ConfigName) then
                     WindUI:Notify({
                         Title = "Config Saved",
                         Content = "Config '" .. ConfigName .. "' saved successfully.",
                         Duration = 3
                     })
+                else
+                    WindUI:Notify({Title = "Error", Content = "Failed to save config.", Duration = 3})
                 end
                 AllConfigsDropdown:Refresh(GetGameConfigs())
             end
@@ -509,21 +572,7 @@ return function(Window, Tabs, WindUI)
             Callback = function()
                 if ConfigName == "" then return end
                 
-                local success = false
-                pcall(function()
-                    Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. ConfigName)
-                    success = Window.CurrentConfig:Load()
-                end)
-                
-                -- Fallback for un-prefixed (legacy) configs
-                if not success then
-                    pcall(function()
-                        Window.CurrentConfig = ConfigManager:CreateConfig(ConfigName)
-                        success = Window.CurrentConfig:Load()
-                    end)
-                end
-                
-                if success then
+                if LoadConfig(ConfigName) then
                     WindUI:Notify({
                         Title = "Config Loaded",
                         Content = "Config '" .. ConfigName .. "' loaded successfully.",
@@ -571,8 +620,7 @@ return function(Window, Tabs, WindUI)
                     local autoloads = HttpService:JSONDecode(readfile(autoloadFile))
                     local target = autoloads[tostring(game.PlaceId)]
                     if target then
-                        Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_" .. target)
-                        if Window.CurrentConfig:Load() then
+                        if LoadConfig(target) then
                             loadedAuto = true
                             WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
                         end
@@ -582,8 +630,7 @@ return function(Window, Tabs, WindUI)
             
             -- Fallback to default if no valid auto-load was triggered
             if not loadedAuto and table.find(GetGameConfigs(), "default") then
-                Window.CurrentConfig = ConfigManager:CreateConfig(tostring(game.PlaceId) .. "_default")
-                Window.CurrentConfig:Load()
+                LoadConfig("default")
             end
         end)
     end
