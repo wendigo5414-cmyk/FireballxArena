@@ -1,0 +1,40 @@
+local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- BUTTON PATH (Rebirth Button)
+local targetButton = playerGui:WaitForChild("Rebirth")
+                             :WaitForChild("Main")
+                             :WaitForChild("Rebirth")
+                             :WaitForChild("Contents")
+                             :WaitForChild("Buttons")
+                             :WaitForChild("Btn_Rebirth")
+
+if targetButton and targetButton.AbsolutePosition then
+    -- Exact Center Coordinates Calculation
+    local x = targetButton.AbsolutePosition.X + (targetButton.AbsoluteSize.X / 2)
+    local y = targetButton.AbsolutePosition.Y + (targetButton.AbsoluteSize.Y / 2) + GuiService:GetGuiInset().Y
+
+    -- ADAPTIVE SEPARATION
+    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+        -- 1. MOBILE METHOD: Pure Touch Stream
+        print("[Engine] Device: MOBILE -> Simulating Touch Tap")
+        local touchId = math.random(70000, 80000)
+        VirtualInputManager:SendTouchEvent(touchId, 0, x, y) -- Touch Down
+        task.wait(0.04)
+        VirtualInputManager:SendTouchEvent(touchId, 2, x, y) -- Touch Up
+        print("[Engine] Mobile Touch Done!")
+    else
+        -- 2. PC METHOD: Virtual Mouse Click
+        print("[Engine] Device: PC -> Simulating Mouse Click")
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1) -- Mouse Down
+        task.wait(0.04)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1) -- Mouse Up
+        print("[Engine] PC Mouse Click Done!")
+    end
+else
+    warn("Target button screen par nahi mila!")
+end
