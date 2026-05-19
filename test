@@ -1,8 +1,11 @@
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Safely path pick karna (Btn_Skip ke liye)
 local skipButton = playerGui:WaitForChild("Rebirth")
                             :WaitForChild("Main")
                             :WaitForChild("Rebirth")
@@ -12,24 +15,37 @@ local skipButton = playerGui:WaitForChild("Rebirth")
                             :WaitForChild("Btn_Skip")
 
 if skipButton then
-    print("[Direct Method] Button ko internal target kiya ja raha hai...")
-
-    -- Step 1: Roblox Selection system me is button ko select karwana
-    local oldSelection = GuiService.SelectedObject
-    GuiService.SelectedObject = skipButton
-    
-    task.wait(0.02) -- Chota sa micro-delay engine ko register karne ke liye
-
-    -- Step 2: Roblox UI engine ko direct 'UI Selection Click' input bhejna
-    -- (Ye screen coordinates use nahi karta, direct SelectedObject par fire hota hai)
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game) -- UI Enter Down
-    task.wait(0.05)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game) -- UI Enter Up
-
-    -- Step 3: Purani selection wapas restore karna taaki user UI glitch na ho
-    GuiService.SelectedObject = oldSelection
-    
-    print("[Direct Method] Success! Bina screen touch kiye button trigger ho gaya.")
+    -- Check if it's Mobile or PC
+    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+        print("[Fix Engine] Mobile Detect Hua - Executing Safe Click...")
+        
+        -- MOBILE FIX: Bina Return Key ke direct Click simulation position vector se
+        if skipButton.AbsolutePosition then
+            local x = skipButton.AbsolutePosition.X + (skipButton.AbsoluteSize.X / 2)
+            local y = skipButton.AbsolutePosition.Y + (skipButton.AbsoluteSize.Y / 2) + GuiService:GetGuiInset().Y
+            
+            -- Single specific click stream (Paas wale buttons bypass karne ke liye unique identifier)
+            local mobileTouchId = 55555
+            VirtualInputManager:SendTouchEvent(mobileTouchId, 0, x, y) -- Strict Touch Down
+            task.wait(0.02)
+            VirtualInputManager:SendTouchEvent(mobileTouchId, 2, x, y) -- Strict Touch Up
+            print("[Fix Engine] Mobile Par Exact Tap Ho Gaya, No Mouse Spawned!")
+        end
+    else
+        print("[Fix Engine] PC Detect Hua - Executing Selection Click...")
+        
+        -- PC FIX: Wahi selection method jo tumhare liye pehle sahi kaam kar raha tha
+        local oldSelection = GuiService.SelectedObject
+        GuiService.SelectedObject = skipButton
+        task.wait(0.02)
+        
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        task.wait(0.04)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+        
+        GuiService.SelectedObject = oldSelection
+        print("[Fix Engine] PC Par Selection Click Complete!")
+    end
 else
-    warn("Button nahi mila, path check karo.")
+    warn("Button path galat hai ya game me nahi mila!")
 end
