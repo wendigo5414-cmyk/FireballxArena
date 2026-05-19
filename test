@@ -1,40 +1,35 @@
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
-local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local skipButton = playerGui:WaitForChild("Rebirth")
+                            :WaitForChild("Main")
+                            :WaitForChild("Rebirth")
+                            :WaitForChild("Contents")
+                            :WaitForChild("Buttons")
+                            :WaitForChild("SkipRebirthButton")
+                            :WaitForChild("Btn_Skip")
 
--- BUTTON PATH (Rebirth Button)
-local targetButton = playerGui:WaitForChild("Rebirth")
-                             :WaitForChild("Main")
-                             :WaitForChild("Rebirth")
-                             :WaitForChild("Contents")
-                             :WaitForChild("Buttons")
-                             :WaitForChild("Btn_Rebirth")
+if skipButton then
+    print("[Direct Method] Button ko internal target kiya ja raha hai...")
 
-if targetButton and targetButton.AbsolutePosition then
-    -- Exact Center Coordinates Calculation
-    local x = targetButton.AbsolutePosition.X + (targetButton.AbsoluteSize.X / 2)
-    local y = targetButton.AbsolutePosition.Y + (targetButton.AbsoluteSize.Y / 2) + GuiService:GetGuiInset().Y
+    -- Step 1: Roblox Selection system me is button ko select karwana
+    local oldSelection = GuiService.SelectedObject
+    GuiService.SelectedObject = skipButton
+    
+    task.wait(0.02) -- Chota sa micro-delay engine ko register karne ke liye
 
-    -- ADAPTIVE SEPARATION
-    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-        -- 1. MOBILE METHOD: Pure Touch Stream
-        print("[Engine] Device: MOBILE -> Simulating Touch Tap")
-        local touchId = math.random(70000, 80000)
-        VirtualInputManager:SendTouchEvent(touchId, 0, x, y) -- Touch Down
-        task.wait(0.04)
-        VirtualInputManager:SendTouchEvent(touchId, 2, x, y) -- Touch Up
-        print("[Engine] Mobile Touch Done!")
-    else
-        -- 2. PC METHOD: Virtual Mouse Click
-        print("[Engine] Device: PC -> Simulating Mouse Click")
-        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1) -- Mouse Down
-        task.wait(0.04)
-        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1) -- Mouse Up
-        print("[Engine] PC Mouse Click Done!")
-    end
+    -- Step 2: Roblox UI engine ko direct 'UI Selection Click' input bhejna
+    -- (Ye screen coordinates use nahi karta, direct SelectedObject par fire hota hai)
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game) -- UI Enter Down
+    task.wait(0.05)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game) -- UI Enter Up
+
+    -- Step 3: Purani selection wapas restore karna taaki user UI glitch na ho
+    GuiService.SelectedObject = oldSelection
+    
+    print("[Direct Method] Success! Bina screen touch kiye button trigger ho gaya.")
 else
-    warn("Target button screen par nahi mila!")
+    warn("Button nahi mila, path check karo.")
 end
