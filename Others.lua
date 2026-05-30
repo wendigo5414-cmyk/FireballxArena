@@ -688,7 +688,7 @@ return function(Window, Tabs, WindUI)
 
         Tabs.AboutUs:Button({
             Title = "Submit Feedback",
-            Desc = "Need an update / Report a bug / Any Issue with script. (15 Min Cooldown)",
+            Desc = "Need an update / Report a bug / Any Issue with script.",
             Icon = "solar:chat-round-line-bold",
             Callback = function()
                 local COOLDOWN_TIME = 15 * 60
