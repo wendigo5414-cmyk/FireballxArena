@@ -532,7 +532,7 @@ function SairoLibrary.Init()
     InfoLayout.SortOrder = Enum.SortOrder.LayoutOrder
     InfoLayout.Padding = UDim.new(0, 12)
 
-    local function createLink(title, subtitle, urlStr)
+    local function createLink(title, subtitle, actionObj)
         local btn = Instance.new("TextButton")
         btn.Parent = InfoScroll
         btn.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
@@ -576,14 +576,21 @@ function SairoLibrary.Init()
         animateGhostButton(btn)
 
         btn.MouseButton1Click:Connect(function()
-            setclipboard(urlStr)
-            Notify("Copied Link", "Action completed: " .. title .. " link copied.", 4, "success")
+            if type(actionObj) == "function" then
+                actionObj()
+            else
+                setclipboard(actionObj)
+                Notify("Copied Link", "Action completed: " .. title .. " link copied.", 4, "success")
+            end
         end)
     end
 
     createLink("Discord Server", "Join for updates and scripts", "https://discord.gg/RQ2SSPuEmT")
     createLink("YouTube Channel", "Watch script showcases and tutorials", "https://www.youtube.com/@primexhub0")
     createLink("Website", "Official hub site", "https://sairo.online/home")
+    createLink("Live Support", "Chat with developers for help", function()
+        pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/wendigo5414-cmyk/FireballxArena/refs/heads/main/feedbacksystem"))() end)
+    end)
 
     -- Dragging Logic
     local dragging, dragInput, dragStart, startPos
