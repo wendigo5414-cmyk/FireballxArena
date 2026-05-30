@@ -1,44 +1,44 @@
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
 
 local LocalPlayer = Players.LocalPlayer
-local WebhookURL = "https://primexhub-shop.onrender.com/api/feedback"
+local HWID = RbxAnalyticsService:GetClientId()
+local API_URL = _G.SairoAPI_URL or "https://sairo.online"
 
--- Cooldown System (15 Minutes)
-local COOLDOWN_TIME = 15 * 60
-local COOLDOWN_FILE = "PrimeX_Feedback_Cooldown.txt"
-
-local function setCooldown()
-    if writefile then
-        writefile(COOLDOWN_FILE, tostring(os.time()))
-    end
+-- Prevent multiple executions
+if CoreGui:FindFirstChild("SairoSupportUI") then
+    CoreGui.SairoSupportUI:Destroy()
 end
 
--- Create UI
-local FeedbackUI = Instance.new("ScreenGui")
-FeedbackUI.Name = "PrimeXFeedbackUI"
-FeedbackUI.Parent = CoreGui
-FeedbackUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local SupportUI = Instance.new("ScreenGui")
+SupportUI.Name = "SairoSupportUI"
+SupportUI.Parent = CoreGui
+SupportUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Parent = FeedbackUI
+MainFrame.Parent = SupportUI
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundColor3 = Color3.fromRGB(11, 11, 11)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.Size = UDim2.new(0, 400, 0, 0) -- Starts at 0 height for animation
+MainFrame.Size = UDim2.new(0, 450, 0, 550)
 MainFrame.ClipsDescendants = true
 MainFrame.BorderSizePixel = 0
+
+-- Entrance Animation
+MainFrame.Size = UDim2.new(0, 450, 0, 0)
+TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 450, 0, 550)}):Play()
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(40, 40, 40)
+UIStroke.Color = Color3.fromRGB(39, 39, 42) -- zinc-800
 UIStroke.Thickness = 1
 UIStroke.Parent = MainFrame
 
@@ -46,218 +46,384 @@ UIStroke.Parent = MainFrame
 local Topbar = Instance.new("Frame")
 Topbar.Name = "Topbar"
 Topbar.Parent = MainFrame
-Topbar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Topbar.Size = UDim2.new(1, 0, 0, 40)
+Topbar.BackgroundColor3 = Color3.fromRGB(9, 9, 11) -- zinc-950
+Topbar.Size = UDim2.new(1, 0, 0, 50)
 Topbar.BorderSizePixel = 0
 
-local TopbarCorner = Instance.new("UICorner")
-TopbarCorner.CornerRadius = UDim.new(0, 12)
-TopbarCorner.Parent = Topbar
-
-local TopbarFix = Instance.new("Frame")
-TopbarFix.Name = "TopbarFix"
-TopbarFix.Parent = Topbar
-TopbarFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-TopbarFix.Position = UDim2.new(0, 0, 1, -5)
-TopbarFix.Size = UDim2.new(1, 0, 0, 5)
-TopbarFix.BorderSizePixel = 0
+local TopbarBottomBorder = Instance.new("Frame")
+TopbarBottomBorder.Parent = Topbar
+TopbarBottomBorder.BackgroundColor3 = Color3.fromRGB(39, 39, 42)
+TopbarBottomBorder.Size = UDim2.new(1, 0, 0, 1)
+TopbarBottomBorder.Position = UDim2.new(0, 0, 1, -1)
+TopbarBottomBorder.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Parent = Topbar
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.Size = UDim2.new(1, -150, 1, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Submit Feedback"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
+Title.Text = "Sairo Support Chat"
+Title.TextColor3 = Color3.fromRGB(249, 115, 22) -- orange-500
+Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
+local StatusDot = Instance.new("Frame")
+StatusDot.Name = "StatusDot"
+StatusDot.Parent = Topbar
+StatusDot.BackgroundColor3 = Color3.fromRGB(63, 63, 70)
+StatusDot.Position = UDim2.new(0, 155, 0, 20)
+StatusDot.Size = UDim2.new(0, 8, 0, 8)
+local StatusDotCorner = Instance.new("UICorner")
+StatusDotCorner.CornerRadius = UDim.new(1, 0)
+StatusDotCorner.Parent = StatusDot
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Name = "StatusText"
+StatusText.Parent = Topbar
+StatusText.BackgroundTransparency = 1
+StatusText.Position = UDim2.new(0, 170, 0, 0)
+StatusText.Size = UDim2.new(0, 100, 1, 0)
+StatusText.Font = Enum.Font.GothamMedium
+StatusText.Text = "OFFLINE"
+StatusText.TextColor3 = Color3.fromRGB(161, 161, 170)
+StatusText.TextSize = 11
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Window Controls Container
+local ControlsContainer = Instance.new("Frame")
+ControlsContainer.Name = "ControlsContainer"
+ControlsContainer.Parent = Topbar
+ControlsContainer.BackgroundTransparency = 1
+ControlsContainer.Position = UDim2.new(1, -100, 0, 0)
+ControlsContainer.Size = UDim2.new(0, 100, 1, 0)
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Parent = ControlsContainer
+MinimizeButton.BackgroundTransparency = 1
+MinimizeButton.Position = UDim2.new(0, 10, 0.5, -15)
+MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Font = Enum.Font.Gotham
+MinimizeButton.Text = "—"
+MinimizeButton.TextColor3 = Color3.fromRGB(161, 161, 170)
+MinimizeButton.TextSize = 14
+local MinUICorner = Instance.new("UICorner")
+MinUICorner.CornerRadius = UDim.new(0, 6)
+MinUICorner.Parent = MinimizeButton
+
+MinimizeButton.MouseEnter:Connect(function() TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(39, 39, 42), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play() end)
+MinimizeButton.MouseLeave:Connect(function() TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(9, 9, 11), TextColor3 = Color3.fromRGB(161, 161, 170)}):Play() end)
+
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 450, 0, 50)}):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 450, 0, 550)}):Play()
+        task.wait(0.2)
+        ChatScroll.CanvasPosition = Vector2.new(0, 99999)
+    end
+end)
+
+-- Close Button
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "CloseButton"
-CloseButton.Parent = Topbar
+CloseButton.Parent = ControlsContainer
 CloseButton.BackgroundTransparency = 1
-CloseButton.Position = UDim2.new(1, -40, 0, 0)
-CloseButton.Size = UDim2.new(0, 40, 1, 0)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-CloseButton.TextSize = 16
+CloseButton.Position = UDim2.new(0, 50, 0.5, -15)
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Font = Enum.Font.Gotham
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(161, 161, 170)
+CloseButton.TextSize = 14
+local CloseUICorner = Instance.new("UICorner")
+CloseUICorner.CornerRadius = UDim.new(0, 6)
+CloseUICorner.Parent = CloseButton
 
--- Content Area
-local ContentArea = Instance.new("Frame")
-ContentArea.Name = "ContentArea"
-ContentArea.Parent = MainFrame
-ContentArea.BackgroundTransparency = 1
-ContentArea.Position = UDim2.new(0, 0, 0, 40)
-ContentArea.Size = UDim2.new(1, 0, 1, -40)
+CloseButton.MouseEnter:Connect(function() TweenService:Create(CloseButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(239, 68, 68), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play() end)
+CloseButton.MouseLeave:Connect(function() TweenService:Create(CloseButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(9, 9, 11), TextColor3 = Color3.fromRGB(161, 161, 170)}):Play() end)
+CloseButton.MouseButton1Click:Connect(function()
+    local t = TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 450, 0, 0)})
+    t:Play()
+    t.Completed:Wait()
+    SupportUI:Destroy()
+end)
 
-local Desc = Instance.new("TextLabel")
-Desc.Name = "Desc"
-Desc.Parent = ContentArea
-Desc.BackgroundTransparency = 1
-Desc.Position = UDim2.new(0, 15, 0, 10)
-Desc.Size = UDim2.new(1, -30, 0, 40)
-Desc.Font = Enum.Font.Gotham
-Desc.Text = "Need an update, found a bug, or have an issue? Let us know below. (15 Min Cooldown)"
-Desc.TextColor3 = Color3.fromRGB(180, 180, 180)
-Desc.TextSize = 13
-Desc.TextWrapped = true
-Desc.TextXAlignment = Enum.TextXAlignment.Left
-Desc.TextYAlignment = Enum.TextYAlignment.Top
+-- Messages Area
+local ChatScroll = Instance.new("ScrollingFrame")
+ChatScroll.Name = "ChatScroll"
+ChatScroll.Parent = MainFrame
+ChatScroll.BackgroundTransparency = 1
+ChatScroll.Position = UDim2.new(0, 0, 0, 50)
+ChatScroll.Size = UDim2.new(1, 0, 1, -110)
+ChatScroll.BorderSizePixel = 0
+ChatScroll.ScrollBarThickness = 4
+ChatScroll.ScrollBarImageColor3 = Color3.fromRGB(63, 63, 70)
+
+local ChatPadding = Instance.new("UIPadding")
+ChatPadding.Parent = ChatScroll
+ChatPadding.PaddingTop = UDim.new(0, 15)
+ChatPadding.PaddingBottom = UDim.new(0, 15)
+ChatPadding.PaddingLeft = UDim.new(0, 20)
+ChatPadding.PaddingRight = UDim.new(0, 15)
+
+local ChatLayout = Instance.new("UIListLayout")
+ChatLayout.Parent = ChatScroll
+ChatLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ChatLayout.Padding = UDim.new(0, 10)
+
+ChatLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ChatScroll.CanvasSize = UDim2.new(0, 0, 0, ChatLayout.AbsoluteContentSize.Y + 30)
+    ChatScroll.CanvasPosition = Vector2.new(0, ChatLayout.AbsoluteContentSize.Y + 100)
+end)
+
+-- Input Area
+local InputFrame = Instance.new("Frame")
+InputFrame.Name = "InputFrame"
+InputFrame.Parent = MainFrame
+InputFrame.BackgroundColor3 = Color3.fromRGB(9, 9, 11)
+InputFrame.Position = UDim2.new(0, 0, 1, -60)
+InputFrame.Size = UDim2.new(1, 0, 0, 60)
+InputFrame.BorderSizePixel = 0
+
+local InputTopBorder = Instance.new("Frame")
+InputTopBorder.Parent = InputFrame
+InputTopBorder.BackgroundColor3 = Color3.fromRGB(39, 39, 42)
+InputTopBorder.Size = UDim2.new(1, 0, 0, 1)
+InputTopBorder.Position = UDim2.new(0, 0, 0, 0)
+InputTopBorder.BorderSizePixel = 0
 
 local TextBoxFrame = Instance.new("Frame")
-TextBoxFrame.Name = "TextBoxFrame"
-TextBoxFrame.Parent = ContentArea
-TextBoxFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TextBoxFrame.Position = UDim2.new(0, 15, 0, 55)
-TextBoxFrame.Size = UDim2.new(1, -30, 0, 120)
-TextBoxFrame.BorderSizePixel = 0
-
-local TextBoxCorner = Instance.new("UICorner")
-TextBoxCorner.CornerRadius = UDim.new(0, 8)
-TextBoxCorner.Parent = TextBoxFrame
-
-local TextBoxStroke = Instance.new("UIStroke")
-TextBoxStroke.Color = Color3.fromRGB(50, 50, 50)
-TextBoxStroke.Thickness = 1
-TextBoxStroke.Parent = TextBoxFrame
+TextBoxFrame.Parent = InputFrame
+TextBoxFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 27)
+TextBoxFrame.Position = UDim2.new(0, 15, 0, 10)
+TextBoxFrame.Size = UDim2.new(1, -100, 0, 40)
+local TBCorner = Instance.new("UICorner")
+TBCorner.CornerRadius = UDim.new(0, 8)
+TBCorner.Parent = TextBoxFrame
+local TBStroke = Instance.new("UIStroke")
+TBStroke.Color = Color3.fromRGB(63, 63, 70)
+TBStroke.Parent = TextBoxFrame
 
 local TextBox = Instance.new("TextBox")
-TextBox.Name = "TextBox"
 TextBox.Parent = TextBoxFrame
 TextBox.BackgroundTransparency = 1
-TextBox.Position = UDim2.new(0, 10, 0, 10)
-TextBox.Size = UDim2.new(1, -20, 1, -20)
+TextBox.Position = UDim.new(0, 0)
+TextBox.Size = UDim2.new(1, 0, 1, 0)
 TextBox.Font = Enum.Font.Gotham
-TextBox.PlaceholderText = "Type your feedback here..."
+TextBox.PlaceholderText = "Type message..."
 TextBox.Text = ""
-TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.TextColor3 = Color3.fromRGB(228, 228, 231)
 TextBox.TextSize = 14
-TextBox.TextWrapped = true
 TextBox.TextXAlignment = Enum.TextXAlignment.Left
-TextBox.TextYAlignment = Enum.TextYAlignment.Top
 TextBox.ClearTextOnFocus = false
+local TBPadding = Instance.new("UIPadding")
+TBPadding.Parent = TextBox
+TBPadding.PaddingLeft = UDim.new(0, 15)
+TBPadding.PaddingRight = UDim.new(0, 15)
 
-local SubmitButton = Instance.new("TextButton")
-SubmitButton.Name = "SubmitButton"
-SubmitButton.Parent = ContentArea
-SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106) -- Prime X Green
-SubmitButton.Position = UDim2.new(0, 15, 1, -50)
-SubmitButton.Size = UDim2.new(1, -30, 0, 35)
-SubmitButton.Font = Enum.Font.GothamBold
-SubmitButton.Text = "SUBMIT FEEDBACK"
-SubmitButton.TextColor3 = Color3.fromRGB(10, 10, 10)
-SubmitButton.TextSize = 14
-SubmitButton.AutoButtonColor = false
+TextBox.Focused:Connect(function() TweenService:Create(TBStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(249, 115, 22)}):Play() end)
+TextBox.FocusLost:Connect(function() TweenService:Create(TBStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(63, 63, 70)}):Play() end)
 
-local SubmitCorner = Instance.new("UICorner")
-SubmitCorner.CornerRadius = UDim.new(0, 8)
-SubmitCorner.Parent = SubmitButton
+local SendBtn = Instance.new("TextButton")
+SendBtn.Parent = InputFrame
+SendBtn.BackgroundColor3 = Color3.fromRGB(234, 88, 12)
+SendBtn.Position = UDim2.new(1, -75, 0, 10)
+SendBtn.Size = UDim2.new(0, 60, 0, 40)
+SendBtn.Font = Enum.Font.GothamBold
+SendBtn.Text = "SEND"
+SendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SendBtn.TextSize = 13
+SendBtn.AutoButtonColor = false
+local SendCorner = Instance.new("UICorner")
+SendCorner.CornerRadius = UDim.new(0, 8)
+SendCorner.Parent = SendBtn
 
--- Animations
-local function CloseUI()
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 400, 0, 0)})
-    tween:Play()
-    tween.Completed:Wait()
-    FeedbackUI:Destroy()
+SendBtn.MouseEnter:Connect(function() TweenService:Create(SendBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(249, 115, 22)}):Play() end)
+SendBtn.MouseLeave:Connect(function() TweenService:Create(SendBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(234, 88, 12)}):Play() end)
+
+local function RequestAccess(options)
+    if syn and syn.request then return syn.request(options) end
+    if http and http.request then return http.request(options) end
+    if request then return request(options) end
+    return nil
 end
 
--- Open Animation
-TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 400, 0, 250)}):Play()
+local lastMessageCount = 0
 
--- Button Effects
-CloseButton.MouseEnter:Connect(function()
-    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 80, 80)}):Play()
-end)
-CloseButton.MouseLeave:Connect(function()
-    TweenService:Create(CloseButton, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
-end)
-CloseButton.MouseButton1Click:Connect(CloseUI)
-
-SubmitButton.MouseEnter:Connect(function()
-    TweenService:Create(SubmitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(38, 204, 85)}):Play()
-end)
-SubmitButton.MouseLeave:Connect(function()
-    TweenService:Create(SubmitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(48, 255, 106)}):Play()
-end)
-
--- Submit Logic
-local isSubmitting = false
-SubmitButton.MouseButton1Click:Connect(function()
-    if isSubmitting then return end
+local function addMessage(data)
+    local isAdmin = (data.sender == "admin")
     
-    local text = TextBox.Text
-    if text:gsub("%s+", "") == "" then
-        SubmitButton.Text = "PLEASE ENTER TEXT"
-        SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        task.wait(1.5)
-        SubmitButton.Text = "SUBMIT FEEDBACK"
-        SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106)
-        return
+    local MsgContainer = Instance.new("Frame")
+    MsgContainer.BackgroundTransparency = 1
+    MsgContainer.Size = UDim2.new(1, 0, 0, 0)
+    MsgContainer.AutomaticSize = Enum.AutomaticSize.Y
+    MsgContainer.Parent = ChatScroll
+    
+    local Bubble = Instance.new("Frame")
+    Bubble.BackgroundColor3 = isAdmin and Color3.fromRGB(234, 88, 12) or Color3.fromRGB(39, 39, 42)
+    Bubble.AutomaticSize = Enum.AutomaticSize.XY
+    Bubble.Parent = MsgContainer
+    local BubbleCorner = Instance.new("UICorner")
+    BubbleCorner.CornerRadius = UDim.new(0, 12)
+    -- remove bottom corner depending on sender
+    if isAdmin then
+        local BottomRightSquare = Instance.new("Frame")
+        BottomRightSquare.BackgroundColor3 = Color3.fromRGB(234, 88, 12)
+        BottomRightSquare.BorderSizePixel = 0
+        BottomRightSquare.Size = UDim2.new(0, 12, 0, 12)
+        BottomRightSquare.Position = UDim2.new(0, 0, 1, -12)
+        BottomRightSquare.Parent = Bubble
+    else
+        local BottomRightSquare = Instance.new("Frame")
+        BottomRightSquare.BackgroundColor3 = Color3.fromRGB(39, 39, 42)
+        BottomRightSquare.BorderSizePixel = 0
+        BottomRightSquare.Size = UDim2.new(0, 12, 0, 12)
+        BottomRightSquare.Position = UDim2.new(1, -12, 1, -12)
+        BottomRightSquare.Parent = Bubble
     end
+    BubbleCorner.Parent = Bubble
     
-    isSubmitting = true
-    SubmitButton.Text = "SENDING..."
+    local BubblePadding = Instance.new("UIPadding")
+    BubblePadding.Parent = Bubble
+    BubblePadding.PaddingTop = UDim.new(0, 10)
+    BubblePadding.PaddingBottom = UDim.new(0, 10)
+    BubblePadding.PaddingLeft = UDim.new(0, 15)
+    BubblePadding.PaddingRight = UDim.new(0, 15)
     
+    local Txt = Instance.new("TextLabel")
+    Txt.BackgroundTransparency = 1
+    Txt.Size = UDim2.new(0, 0, 0, 0)
+    Txt.AutomaticSize = Enum.AutomaticSize.XY
+    Txt.Font = Enum.Font.Gotham
+    Txt.Text = data.text
+    Txt.TextColor3 = isAdmin and Color3.fromRGB(255,255,255) or Color3.fromRGB(228, 228, 231)
+    Txt.TextSize = 14
+    Txt.TextWrapped = true
+    Txt.Parent = Bubble
+    
+    -- Constraint text size
+    local constraint = Instance.new("UITextSizeConstraint")
+    constraint.MaxTextSize = 14
+    constraint.Parent = Txt
+    local uisizetxt = Instance.new("UISizeConstraint")
+    uisizetxt.MaxSize = Vector2.new(350, 9999)
+    uisizetxt.Parent = Txt
+    
+    -- Alignment
+    if isAdmin then
+        local uiList = Instance.new("UIListLayout")
+        uiList.Parent = MsgContainer
+        uiList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    else
+        local uiList = Instance.new("UIListLayout")
+        uiList.Parent = MsgContainer
+        uiList.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    end
+end
+
+local isFetching = false
+local function fetchMessages()
+    if isFetching then return end
+    isFetching = true
     task.spawn(function()
-        local gameName = "Unknown Game"
         pcall(function()
-            local info = MarketplaceService:GetProductInfo(game.PlaceId)
-            gameName = info.Name
-        end)
-        
-        local data = {
-            player = LocalPlayer.Name,
-            gameName = gameName,
-            text = text
-        }
-        
-        local success, response = pcall(function()
-            local requestFunc = syn and syn.request or http and http.request or request
-            if requestFunc then
-                return requestFunc({
-                    Url = WebhookURL,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = HttpService:JSONEncode(data)
-                })
-            else
-                -- Fallback if no request function
-                error("No request function found")
+            local res = RequestAccess({
+                Url = API_URL .. "/api/chat?hwid=" .. HWID,
+                Method = "GET"
+            })
+            if res and res.StatusCode == 200 then
+                local msgs = HttpService:JSONDecode(res.Body)
+                if #msgs > lastMessageCount then
+                    for i = lastMessageCount + 1, #msgs do
+                        addMessage(msgs[i])
+                    end
+                    lastMessageCount = #msgs
+                    -- Scroll down
+                    task.wait(0.1)
+                    if not minimized then
+                        ChatScroll.CanvasPosition = Vector2.new(0, 99999)
+                    end
+                end
+            end
+            
+            local statusRes = RequestAccess({
+                Url = API_URL .. "/api/chat/status?hwid=" .. HWID,
+                Method = "GET"
+            })
+            if statusRes and statusRes.StatusCode == 200 then
+                local st = HttpService:JSONDecode(statusRes.Body)
+                if st.adminOnline then
+                    TweenService:Create(StatusDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(16, 185, 129)}):Play()
+                    StatusText.Text = "ONLINE"
+                    StatusText.TextColor3 = Color3.fromRGB(16, 185, 129)
+                else
+                    TweenService:Create(StatusDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(63, 63, 70)}):Play()
+                    StatusText.Text = "OFFLINE"
+                    StatusText.TextColor3 = Color3.fromRGB(161, 161, 170)
+                end
             end
         end)
-        
-        if success then
-            setCooldown()
-            SubmitButton.Text = "SENT SUCCESSFULLY!"
-            SubmitButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-            task.wait(1)
-            CloseUI()
-        else
-            SubmitButton.Text = "FAILED TO SEND"
-            SubmitButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-            task.wait(2)
-            SubmitButton.Text = "SUBMIT FEEDBACK"
-            SubmitButton.BackgroundColor3 = Color3.fromRGB(48, 255, 106)
-            isSubmitting = false
-        end
+        isFetching = false
+    end)
+end
+
+-- Force initial fetch
+fetchMessages()
+
+-- Refresh Loop
+task.spawn(function()
+    while SupportUI.Parent do
+        fetchMessages()
+        task.wait(3)
+    end
+end)
+
+local isSending = false
+SendBtn.MouseButton1Click:Connect(function()
+    if isSending then return end
+    local text = TextBox.Text
+    if text:gsub("%s+", "") == "" then return end
+    
+    isSending = true
+    TextBox.Text = ""
+    SendBtn.Text = "..."
+    
+    task.spawn(function()
+        pcall(function()
+            local gameName = "Unknown Game"
+            pcall(function() gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
+            
+            local payload = {
+                hwid = HWID,
+                displayName = LocalPlayer.Name,
+                text = "Game: " .. gameName .. "\nFeedback:\n" .. text,
+                type = "text"
+            }
+            
+            RequestAccess({
+                Url = API_URL .. "/api/chat",
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(payload)
+            })
+            
+            fetchMessages()
+        end)
+        isSending = false
+        SendBtn.Text = "SEND"
     end)
 end)
 
--- Make draggable
+-- Draggable
 local dragging
 local dragInput
 local dragStart
 local startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
 
 Topbar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -279,8 +445,9 @@ Topbar.InputChanged:Connect(function(input)
     end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
-        update(input)
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
