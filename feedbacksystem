@@ -23,17 +23,36 @@ SupportUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 SupportUI.IgnoreGuiInset = true
 SupportUI.ResetOnSpawn = false
 
+local camera = workspace.CurrentCamera
+local vpSize = camera and camera.ViewportSize or Vector2.new(1920, 1080)
+local defW = math.clamp(vpSize.X * 0.5, 400, 900) -- Default to 50% of screen width
+local defH = defW * 0.75 -- Lock ratio
+
+if vpSize.X < 600 then 
+    defW = vpSize.X * 0.95
+    defH = defW * 0.85
+end
+
 -- The main draggable window
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = SupportUI
 MainFrame.AnchorPoint = Vector2.new(0.5, 0)
 MainFrame.Position = UDim2.new(0.5, 0, 0.2, 0)
-MainFrame.Size = UDim2.new(0, 480, 0, 0) -- Starts at 0 height for entrance anim
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+MainFrame.Size = UDim2.new(0, defW, 0, 0) -- Starts at 0 height for entrance anim
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Slightly lighter for gradient base
+MainFrame.BackgroundTransparency = 0.15 -- Transparent base
 MainFrame.ClipsDescendants = true
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
+})
+MainGradient.Rotation = 90
+MainGradient.Parent = MainFrame
 
 local BgPattern = Instance.new("ImageLabel")
 BgPattern.Parent = MainFrame
@@ -86,10 +105,10 @@ TitleHeader.Parent = Topbar
 TitleHeader.BackgroundTransparency = 1
 TitleHeader.Position = UDim2.new(0, 20, 0, 10)
 TitleHeader.Size = UDim2.new(1, -150, 0, 20)
-TitleHeader.Font = Enum.Font.GothamBold
-TitleHeader.Text = "Support Chat"
+TitleHeader.Font = Enum.Font.GothamBlack -- Changed to Black for heavier bold
+TitleHeader.Text = "Live Support" -- Renamed
 TitleHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleHeader.TextSize = 16
+TitleHeader.TextSize = 18
 TitleHeader.TextXAlignment = Enum.TextXAlignment.Left
 
 local StatusDot = Instance.new("Frame")
@@ -143,15 +162,94 @@ CloseBtn.MouseLeave:Connect(function() TweenService:Create(CloseBtn, TweenInfo.n
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
+    
+    local contentStr = MainFrame:FindFirstChild("Content")
+    local resizeHnd = MainFrame:FindFirstChild("ResizeHandle")
+    local miniStatus = MainFrame:FindFirstChild("MiniStatusFrame")
+    
     if minimized then
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 480, 0, 56)}):Play()
+        if contentStr then contentStr.Visible = false end
+        if resizeHnd then resizeHnd.Visible = false end
+        Topbar.Visible = false
+        if miniStatus then miniStatus.Visible = true end
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 120, 0, 40)}):Play()
+        TweenService:Create(UICorner, TweenInfo.new(0.4), {CornerRadius = UDim.new(0.5, 0)}):Play()
     else
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 480, 0, 550)}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, defW, 0, defH)}):Play()
+        TweenService:Create(UICorner, TweenInfo.new(0.4), {CornerRadius = UDim.new(0, 8)}):Play()
+        if contentStr then contentStr.Visible = true end
+        if resizeHnd then resizeHnd.Visible = true end
+        Topbar.Visible = true
+        if miniStatus then miniStatus.Visible = false end
     end
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     SupportUI:Destroy()
+end)
+
+-- Minimized Status Frame
+local MiniStatusFrame = Instance.new("TextButton")
+MiniStatusFrame.Name = "MiniStatusFrame"
+MiniStatusFrame.Parent = MainFrame
+MiniStatusFrame.Size = UDim2.new(1, 0, 1, 0)
+MiniStatusFrame.BackgroundTransparency = 1
+MiniStatusFrame.Visible = false
+MiniStatusFrame.Text = ""
+MiniStatusFrame.AutoButtonColor = false
+
+local MiniStatusLayout = Instance.new("UIListLayout")
+MiniStatusLayout.Parent = MiniStatusFrame
+MiniStatusLayout.FillDirection = Enum.FillDirection.Horizontal
+MiniStatusLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MiniStatusLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+MiniStatusLayout.Padding = UDim.new(0, 8)
+MiniStatusLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local MiniTitleText = Instance.new("TextLabel")
+MiniTitleText.Parent = MiniStatusFrame
+MiniTitleText.BackgroundTransparency = 1
+MiniTitleText.Size = UDim2.new(0, 0, 1, 0)
+MiniTitleText.AutomaticSize = Enum.AutomaticSize.X
+MiniTitleText.Font = Enum.Font.GothamMedium
+MiniTitleText.Text = "Status"
+MiniTitleText.TextColor3 = Color3.fromRGB(200, 200, 210)
+MiniTitleText.TextSize = 14
+MiniTitleText.LayoutOrder = 1
+
+local MiniDot = Instance.new("Frame")
+MiniDot.Name = "Dot"
+MiniDot.Parent = MiniStatusFrame
+MiniDot.BackgroundColor3 = Color3.fromRGB(239, 68, 68) -- Start red
+MiniDot.Size = UDim2.new(0, 10, 0, 10)
+MiniDot.LayoutOrder = 2
+local MiniDotCorner = Instance.new("UICorner")
+MiniDotCorner.CornerRadius = UDim.new(1, 0)
+MiniDotCorner.Parent = MiniDot
+
+local isHoveringMini = false
+MiniStatusFrame.MouseEnter:Connect(function()
+    if isHoveringMini then return end
+    isHoveringMini = true
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}):Play()
+end)
+MiniStatusFrame.MouseLeave:Connect(function()
+    isHoveringMini = false
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play()
+end)
+
+MiniStatusFrame.MouseButton1Click:Connect(function()
+    -- Emulate unminimize
+    minimized = false
+    local contentStr = MainFrame:FindFirstChild("Content")
+    local resizeHnd = MainFrame:FindFirstChild("ResizeHandle")
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, defW, 0, defH)}):Play()
+    TweenService:Create(UICorner, TweenInfo.new(0.4), {CornerRadius = UDim.new(0, 8)}):Play()
+    if contentStr then contentStr.Visible = true end
+    if resizeHnd then resizeHnd.Visible = true end
+    Topbar.Visible = true
+    MiniStatusFrame.Visible = false
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 25)}):Play() -- reset color
 end)
 
 -- Messages Area
@@ -197,6 +295,7 @@ local InputContainer = Instance.new("Frame")
 InputContainer.Name = "InputContainer"
 InputContainer.Parent = ContentFrame
 InputContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+InputContainer.BackgroundTransparency = 0.2
 InputContainer.Position = UDim2.new(0, 0, 1, -70)
 InputContainer.Size = UDim2.new(1, 0, 0, 70)
 InputContainer.BorderSizePixel = 0
@@ -211,13 +310,15 @@ InputBorder.BorderSizePixel = 0
 
 local TBFrame = Instance.new("Frame")
 TBFrame.Parent = InputContainer
-TBFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+TBFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TBFrame.BackgroundTransparency = 0.5
 TBFrame.Position = UDim2.new(0, 20, 0.5, -20)
 TBFrame.Size = UDim2.new(1, -110, 0, 40)
 local TBCorner = Instance.new("UICorner")
-TBCorner.CornerRadius = UDim.new(0, 6)
+TBCorner.CornerRadius = UDim.new(0, 8)
 TBCorner.Parent = TBFrame
 local TBStroke = Instance.new("UIStroke")
+TBStroke.Thickness = 1
 TBStroke.Color = Color3.fromRGB(50, 50, 60)
 TBStroke.Parent = TBFrame
 
@@ -226,7 +327,7 @@ TextBox.Parent = TBFrame
 TextBox.BackgroundTransparency = 1
 TextBox.Position = UDim2.new(0, 15, 0, 0)
 TextBox.Size = UDim2.new(1, -30, 1, 0)
-TextBox.Font = Enum.Font.Gotham
+TextBox.Font = Enum.Font.GothamMedium
 TextBox.PlaceholderText = "Type your message..."
 TextBox.Text = ""
 TextBox.TextColor3 = Color3.fromRGB(240, 240, 250)
@@ -236,10 +337,10 @@ TextBox.ClearTextOnFocus = false
 
 local SendBtn = Instance.new("TextButton")
 SendBtn.Parent = InputContainer
-SendBtn.BackgroundColor3 = Color3.fromRGB(249, 115, 22) -- Orange
+SendBtn.BackgroundColor3 = Color3.fromRGB(249, 115, 22) -- Orange base
 SendBtn.Position = UDim2.new(1, -80, 0.5, -20)
 SendBtn.Size = UDim2.new(0, 60, 0, 40)
-SendBtn.Font = Enum.Font.GothamBold
+SendBtn.Font = Enum.Font.GothamBlack
 SendBtn.Text = "SEND"
 SendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SendBtn.TextSize = 12
@@ -248,11 +349,18 @@ local SendCorner = Instance.new("UICorner")
 SendCorner.CornerRadius = UDim.new(0, 6)
 SendCorner.Parent = SendBtn
 
-SendBtn.MouseEnter:Connect(function() TweenService:Create(SendBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(251, 146, 60)}):Play() end)
+local SendGradient = Instance.new("UIGradient")
+SendGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(249, 115, 22))
+})
+SendGradient.Parent = SendBtn
+
+SendBtn.MouseEnter:Connect(function() TweenService:Create(SendBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play() end)
 SendBtn.MouseLeave:Connect(function() TweenService:Create(SendBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(249, 115, 22)}):Play() end)
 
 -- Initial Animation
-TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Size = UDim2.new(0, 480, 0, 550)}):Play()
+TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Size = UDim2.new(0, defW, 0, defH)}):Play()
 
 -- Draggable Logic
 local dragging, dragInput, dragStart, startPos
@@ -297,21 +405,16 @@ local function addMessage(data)
     local txt = data.text or ""
     local isAdmin = (data.sender == "admin")
     
-    -- Dynamically calc size
-    local maxWidth = 320
-    local size = Vector2.new(100, 20)
-    pcall(function()
-        size = TextService:GetTextSize(txt, 14, Enum.Font.Gotham, Vector2.new(maxWidth, 10000))
-    end)
-    
     local container = Instance.new("Frame")
     container.BackgroundTransparency = 1
-    container.Size = UDim2.new(1, 0, 0, size.Y + 36)
+    container.Size = UDim2.new(1, 0, 0, 0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
     container.Parent = ChatScroll
     
     local bubble = Instance.new("Frame")
-    bubble.BackgroundColor3 = isAdmin and Color3.fromRGB(20, 20, 30) or Color3.fromRGB(25, 20, 35)
-    bubble.Size = UDim2.new(0, math.max(size.X + 24, 70), 0, size.Y + 34)
+    bubble.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    bubble.Size = UDim2.new(0, 0, 0, 0)
+    bubble.AutomaticSize = Enum.AutomaticSize.XY
     if isAdmin then
         bubble.Position = UDim2.new(0, 0, 0, 0)
     else
@@ -319,6 +422,29 @@ local function addMessage(data)
         bubble.Position = UDim2.new(1, 0, 0, 0)
     end
     bubble.Parent = container
+
+    local constraint = Instance.new("UISizeConstraint")
+    constraint.MinSize = Vector2.new(80, 42)
+    constraint.MaxSize = Vector2.new(math.max(100, MainFrame.AbsoluteSize.X * 0.8), 99999)
+    constraint.Parent = bubble
+
+    if not _G.chatConstraints then _G.chatConstraints = {} end
+    table.insert(_G.chatConstraints, constraint)
+
+    local bGrad = Instance.new("UIGradient")
+    if isAdmin then
+        bGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 30)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 45))
+        })
+    else
+        bGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 25, 55)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 15, 30))
+        })
+    end
+    bGrad.Rotation = 45
+    bGrad.Parent = bubble
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
@@ -328,11 +454,18 @@ local function addMessage(data)
     stroke.Thickness = 1
     stroke.Color = isAdmin and Color3.fromRGB(45, 45, 65) or Color3.fromRGB(65, 45, 85)
     stroke.Parent = bubble
+
+    local list = Instance.new("UIListLayout")
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.Padding = UDim.new(0, 4)
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    list.Parent = bubble
     
     local textLabel = Instance.new("TextLabel")
     textLabel.BackgroundTransparency = 1
-    textLabel.Size = UDim2.new(1, 0, 1, -14)
-    textLabel.Position = UDim2.new(0, 0, 0, 0)
+    textLabel.Size = UDim2.new(0, 0, 0, 0)
+    textLabel.AutomaticSize = Enum.AutomaticSize.XY
+    textLabel.LayoutOrder = 1
     textLabel.Font = Enum.Font.Gotham
     textLabel.Text = txt
     textLabel.TextColor3 = Color3.fromRGB(250, 250, 250)
@@ -342,23 +475,37 @@ local function addMessage(data)
     textLabel.TextYAlignment = Enum.TextYAlignment.Top
     textLabel.Parent = bubble
     
+    local timeContainer = Instance.new("Frame")
+    timeContainer.BackgroundTransparency = 1
+    timeContainer.Size = UDim2.new(0, 0, 0, 12)
+    timeContainer.AutomaticSize = Enum.AutomaticSize.X
+    timeContainer.LayoutOrder = 2
+    timeContainer.Parent = bubble
+
+    local tList = Instance.new("UIListLayout")
+    tList.FillDirection = Enum.FillDirection.Horizontal
+    tList.SortOrder = Enum.SortOrder.LayoutOrder
+    tList.Padding = UDim.new(0, 4)
+    tList.Parent = timeContainer
+
     local timeLabel = Instance.new("TextLabel")
     timeLabel.BackgroundTransparency = 1
-    timeLabel.Size = UDim2.new(1, 0, 0, 12)
-    timeLabel.Position = UDim2.new(0, 0, 1, -12)
+    timeLabel.Size = UDim2.new(0, 0, 1, 0)
+    timeLabel.AutomaticSize = Enum.AutomaticSize.X
+    timeLabel.LayoutOrder = 1
     timeLabel.Font = Enum.Font.Gotham
     timeLabel.Text = os.date("%I:%M %p")
     timeLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
     timeLabel.TextSize = 10
     timeLabel.TextXAlignment = Enum.TextXAlignment.Right
-    timeLabel.Parent = bubble
+    timeLabel.Parent = timeContainer
 
     if not isAdmin then
         -- Add tick
         local ticks = Instance.new("TextLabel")
         ticks.BackgroundTransparency = 1
-        ticks.Size = UDim2.new(0, 16, 0, 12)
-        ticks.Position = UDim2.new(1, 4, 1, -12)
+        ticks.Size = UDim2.new(0, 16, 1, 0)
+        ticks.LayoutOrder = 2
         ticks.Font = Enum.Font.GothamBold
         ticks.Text = "✔"
         -- Start blue if we know dev is online
@@ -368,9 +515,8 @@ local function addMessage(data)
             ticks.TextColor3 = Color3.fromRGB(150, 150, 160) -- Default gray
         end
         ticks.TextSize = 11
-        ticks.TextXAlignment = Enum.TextXAlignment.Left
-        ticks.Parent = bubble
-        timeLabel.Position = UDim2.new(0, -18, 1, -12) -- shift time left
+        ticks.TextXAlignment = Enum.TextXAlignment.Right
+        ticks.Parent = timeContainer
         
         -- Store it in a global or upvalue table so we can update it
         if not _G.userTicks then _G.userTicks = {} end
@@ -381,7 +527,7 @@ local function addMessage(data)
     pad.PaddingLeft = UDim.new(0, 12)
     pad.PaddingRight = UDim.new(0, 12)
     pad.PaddingTop = UDim.new(0, 10)
-    pad.PaddingBottom = UDim.new(0, 4)
+    pad.PaddingBottom = UDim.new(0, 10)
     pad.Parent = bubble
 end
 
@@ -427,6 +573,7 @@ local function fetchMessages()
                 if s and type(st) == "table" then
                     if st.adminOnline then
                         TweenService:Create(StatusDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(16, 185, 129)}):Play()
+                        if MiniDot then TweenService:Create(MiniDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(16, 185, 129)}):Play() end
                         StatusText.Text = "Dev is Online"
                         StatusText.TextColor3 = Color3.fromRGB(16, 185, 129)
                         
@@ -438,6 +585,7 @@ local function fetchMessages()
                         end
                     else
                         TweenService:Create(StatusDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(80, 80, 90)}):Play()
+                        if MiniDot then TweenService:Create(MiniDot, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(80, 80, 90)}):Play() end
                         StatusText.Text = "Dev is Offline"
                         StatusText.TextColor3 = Color3.fromRGB(150, 150, 160)
                     end
@@ -504,6 +652,63 @@ SendBtn.MouseButton1Click:Connect(sendMessage)
 TextBox.FocusLost:Connect(function(enter)
     if enter then
         sendMessage()
+    end
+end)
+
+-- Resize Logic
+local ResizeHandle = Instance.new("TextButton")
+ResizeHandle.Parent = MainFrame
+ResizeHandle.Name = "ResizeHandle"
+ResizeHandle.BackgroundTransparency = 1
+ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
+ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
+ResizeHandle.ZIndex = 10
+ResizeHandle.Text = "↘"
+ResizeHandle.TextColor3 = Color3.fromRGB(200, 200, 210)
+ResizeHandle.TextSize = 24
+ResizeHandle.Font = Enum.Font.GothamBold
+
+local resizing = false
+local rDragStart
+local rStartSize
+
+ResizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        rDragStart = input.Position
+        rStartSize = MainFrame.AbsoluteSize
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                resizing = false
+                if not minimized then
+                    defW = MainFrame.AbsoluteSize.X
+                    defH = defW * 0.75
+                end
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - rDragStart
+        local newW = math.max(300, rStartSize.X + delta.X)
+        local newH = newW * 0.75
+        if not minimized then
+            MainFrame.Size = UDim2.new(0, newW, 0, newH)
+        end
+    end
+end)
+
+MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    if _G.chatConstraints then
+        local maxW = math.max(100, MainFrame.AbsoluteSize.X * 0.8)
+        for _, constraint in ipairs(_G.chatConstraints) do
+            if constraint.Parent then
+                constraint.MaxSize = Vector2.new(maxW, 99999)
+            end
+        end
     end
 end)
 
