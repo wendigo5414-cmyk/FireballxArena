@@ -28,13 +28,13 @@ function SairoLibrary.Init()
     local DEV_ID = _G.DevID or "admin" 
 
     -- THEME: OBSIDIAN & NEON EMERALD (Sairo Theme)
-    local COLOR_ACCENT = Color3.fromRGB(48, 255, 106)
-    local COLOR_ACCENT_HOVER = Color3.fromRGB(38, 215, 88)
-    local COLOR_BG = Color3.fromRGB(14, 14, 16) 
-    local COLOR_SIDE = Color3.fromRGB(10, 10, 12) 
-    local COLOR_STROKE = Color3.fromRGB(32, 32, 36) 
-    local COLOR_TEXT = Color3.fromRGB(245, 245, 245)
-    local COLOR_TEXT_DIM = Color3.fromRGB(140, 140, 150)
+    local COLOR_ACCENT = Color3.fromRGB(249, 115, 22) -- Bright Orange
+    local COLOR_ACCENT_HOVER = Color3.fromRGB(251, 146, 60)
+    local COLOR_BG = Color3.fromRGB(12, 12, 16) -- Deeper space black
+    local COLOR_SIDE = Color3.fromRGB(8, 8, 10) 
+    local COLOR_STROKE = Color3.fromRGB(40, 40, 46) 
+    local COLOR_TEXT = Color3.fromRGB(255, 255, 255)
+    local COLOR_TEXT_DIM = Color3.fromRGB(150, 150, 160)
 
     -- --- HELPER FUNCTIONS ---
     local function applyCorner(obj, radius)
@@ -126,12 +126,21 @@ function SairoLibrary.Init()
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "Main"
     MainFrame.Parent = KeySystem
-    MainFrame.BackgroundColor3 = COLOR_BG
-    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -165)
-    MainFrame.Size = UDim2.new(0, 550, 0, 330)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Base for Gradient
+    MainFrame.Position = UDim2.new(0.5, -285, 0.5, -175)
+    MainFrame.Size = UDim2.new(0, 570, 0, 350)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
-    applyCorner(MainFrame, 12)
+    
+    local MainGradient = Instance.new("UIGradient")
+    MainGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, COLOR_BG),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 24))
+    }
+    MainGradient.Rotation = 35
+    MainGradient.Parent = MainFrame
+    
+    applyCorner(MainFrame, 14)
     applyStroke(MainFrame, COLOR_STROKE, 1)
 
     local Sidebar = Instance.new("Frame")
@@ -192,8 +201,8 @@ function SairoLibrary.Init()
     local TabsContainer = Instance.new("Frame")
     TabsContainer.Parent = Sidebar
     TabsContainer.BackgroundTransparency = 1
-    TabsContainer.Position = UDim2.new(0, 0, 0, 90)
-    TabsContainer.Size = UDim2.new(1, 0, 1, -90)
+    TabsContainer.Position = UDim2.new(0, 0, 0, 100)
+    TabsContainer.Size = UDim2.new(1, 0, 1, -100)
 
     local UIList_Tabs = Instance.new("UIListLayout")
     UIList_Tabs.Parent = TabsContainer
@@ -212,11 +221,11 @@ function SairoLibrary.Init()
     local RadialGlow = Instance.new("ImageLabel")
     RadialGlow.Parent = ContentArea
     RadialGlow.BackgroundTransparency = 1
-    RadialGlow.Position = UDim2.new(0, -100, 0, -100)
-    RadialGlow.Size = UDim2.new(1, 200, 1, 200)
+    RadialGlow.Position = UDim2.new(0, -150, 0, -150)
+    RadialGlow.Size = UDim2.new(1, 300, 1, 300)
     RadialGlow.Image = "rbxassetid://5028857472"
     RadialGlow.ImageColor3 = COLOR_ACCENT
-    RadialGlow.ImageTransparency = 0.92
+    RadialGlow.ImageTransparency = 0.85
     RadialGlow.ZIndex = 0
 
     local pages = {}
@@ -227,11 +236,11 @@ function SairoLibrary.Init()
         btn.Parent = TabsContainer
         btn.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
         btn.BackgroundTransparency = 1
-        btn.Size = UDim2.new(1, -30, 0, 40)
+        btn.Size = UDim2.new(1, -24, 0, 42)
         btn.Font = Enum.Font.GothamBold
         btn.Text = ""
         btn.AutoButtonColor = false
-        applyCorner(btn, 8)
+        applyCorner(btn, 10)
 
         local icon = Instance.new("ImageLabel")
         icon.Parent = btn
@@ -327,7 +336,7 @@ function SairoLibrary.Init()
     CloseBtn.MouseEnter:Connect(function() TweenService:Create(CloseBtn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(255, 80, 80)}):Play() end)
     CloseBtn.MouseLeave:Connect(function() TweenService:Create(CloseBtn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(120, 120, 130)}):Play() end)
     CloseBtn.MouseButton1Click:Connect(function() 
-        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 550, 0, 0), Position = MainFrame.Position + UDim2.new(0,0,0,165)}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 570, 0, 0), Position = MainFrame.Position + UDim2.new(0,0,0,175)}):Play()
         task.wait(0.3)
         KeySystem:Destroy()
     end)
@@ -673,7 +682,7 @@ function SairoLibrary.Init()
                 
                 if writefile then pcall(function() writefile("SairoAuth.txt", inputKey) end) end
                 
-                TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 550, 0, 0), Position = MainFrame.Position + UDim2.new(0,0,0,165)}):Play()
+                TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 570, 0, 0), Position = MainFrame.Position + UDim2.new(0,0,0,175)}):Play()
                 task.wait(0.5)
                 KeySystem:Destroy()
                 
@@ -704,6 +713,76 @@ function SairoLibrary.Init()
     end
 
     repeat task.wait(0.2) until isVerified
+    
+    -- Unread Admin message logic after verification
+    task.spawn(function()
+        pcall(function()
+            local url = API_URL .. "/api/chat?hwid=" .. HWID
+            local reqFunc = syn and syn.request or http and http.request or request
+            if not reqFunc then return end
+            
+            local res = reqFunc({Url = url, Method = "GET"})
+            if res and res.StatusCode == 200 then
+                local s, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+                if s and type(data) == "table" and #data > 0 then
+                    local latestAdminMessage = nil
+                    for i = #data, 1, -1 do
+                        if data[i].sender == "admin" then
+                            latestAdminMessage = data[i]
+                            break
+                        end
+                    end
+                    
+                    if latestAdminMessage then
+                        local lastSeenTime = ""
+                        if readfile and pcall(function() return readfile("SairoChatSync.txt") end) then
+                            lastSeenTime = readfile("SairoChatSync.txt")
+                        end
+                        if lastSeenTime ~= latestAdminMessage.createdAt then
+                            if writefile then pcall(function() writefile("SairoChatSync.txt", latestAdminMessage.createdAt) end) end
+                            
+                            -- Show Big Support Notification
+                            local AdminNotif = Instance.new("ScreenGui")
+                            AdminNotif.Name = "AdminReplyNotif"
+                            AdminNotif.Parent = game.CoreGui
+                            
+                            local nFrame = Instance.new("Frame")
+                            nFrame.Parent = AdminNotif
+                            nFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                            nFrame.BackgroundTransparency = 0.4
+                            nFrame.Size = UDim2.new(1, 0, 1, 0)
+                            nFrame.ZIndex = 100
+                            
+                            local textLbl = Instance.new("TextLabel")
+                            textLbl.Parent = nFrame
+                            textLbl.BackgroundTransparency = 1
+                            textLbl.Size = UDim2.new(1, 0, 1, 0)
+                            textLbl.Font = Enum.Font.GothamBlack
+                            textLbl.Text = "SUPPORT TEAM HAS REPLIED"
+                            textLbl.TextColor3 = COLOR_ACCENT
+                            textLbl.TextSize = 42
+                            textLbl.TextTransparency = 1
+                            
+                            local stroke = Instance.new("UIStroke")
+                            stroke.Thickness = 2
+                            stroke.Color = Color3.fromRGB(0,0,0)
+                            stroke.Parent = textLbl
+                            
+                            local TweenService = game:GetService("TweenService")
+                            TweenService:Create(textLbl, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {TextTransparency = 0, TextSize = 48}):Play()
+                            
+                            task.delay(4, function()
+                                TweenService:Create(textLbl, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextTransparency = 1, TextSize = 42}):Play()
+                                TweenService:Create(nFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+                                task.wait(0.6)
+                                AdminNotif:Destroy()
+                            end)
+                        end
+                    end
+                end
+            end
+        end)
+    end)
 end
 
 return SairoLibrary
