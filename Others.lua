@@ -460,8 +460,10 @@ return function(Window, Tabs, WindUI)
     --           SETTINGS TAB
     -- ══════════════════════════════════════════
     if Tabs.Settings then
-        Tabs.Settings:Section({ Title = "Misc" })
-        
+        local ConfigSection = Tabs.Settings:Section({
+            Title = "Configuration",
+        })
+
         Tabs.Settings:Button({
             Title = "Enable Anti AFK",
             Desc = "Prevents you from being kicked for idle. Rejoin to turn off.",
@@ -490,10 +492,6 @@ return function(Window, Tabs, WindUI)
                     end)
                 end
             end
-        })
-
-        local ConfigSection = Tabs.Settings:Section({
-            Title = "Configuration",
         })
 
         -- Custom Configuration System
