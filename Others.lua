@@ -136,7 +136,28 @@ return function(Window, Tabs, WindUI)
 
     function NumberConverter.Parse(str)
         if type(str) == "number" then return str end
-        str = string.upper(tostring(str))
+        str = tostring(str)
+
+        -- 1. Strip rich text tags
+        str = string.gsub(str, "<[^>]+>", "")
+
+        -- 2. Strip everything from '/' onwards (e.g. '/s', '/sec')
+        local slashPos = string.find(str, "/")
+        if slashPos then
+            str = string.sub(str, 1, slashPos - 1)
+        end
+
+        -- 3. Uppercase and remove common noise words
+        str = string.upper(str)
+        str = string.gsub(str, "WINS", "")
+        str = string.gsub(str, "REQUIRED", "")
+        str = string.gsub(str, "COST", "")
+        str = string.gsub(str, "PRICE", "")
+        str = string.gsub(str, "NEEDED", "")
+
+        -- 4. Strip spaces, commas, dollars, plus size, and any non-alphanumeric noise
+        str = string.gsub(str, "[^%d%.A-Z]", "")
+
         local numberPart = string.match(str, "^[%d%.]+")
         local suffixPart = string.match(str, "[A-Z]+$")
         
@@ -144,6 +165,9 @@ return function(Window, Tabs, WindUI)
         local number = tonumber(numberPart)
         
         if suffixPart then
+            if suffixPart == "QT" then suffixPart = "QI" end
+            if suffixPart == "QD" then suffixPart = "QA" end
+            
             for i, suffix in ipairs(extendedSuffixes) do
                 if string.upper(suffix) == suffixPart then
                     return number * (10 ^ (i * 3))
@@ -436,6 +460,38 @@ return function(Window, Tabs, WindUI)
     --           SETTINGS TAB
     -- ══════════════════════════════════════════
     if Tabs.Settings then
+        Tabs.Settings:Section({ Title = "Misc" })
+        
+        Tabs.Settings:Button({
+            Title = "Enable Anti AFK",
+            Desc = "Prevents you from being kicked for idle. Rejoin to turn off.",
+            Icon = "solar:shield-bold",
+            Callback = function()
+                WindUI:Notify({
+                    Title = "Anti AFK",
+                    Content = "Anti AFK is on. Rejoin to turn it off.",
+                    Duration = 5
+                })
+                
+                local Players = game:GetService("Players")
+                if getconnections then
+                    for _, connection in pairs(getconnections(Players.LocalPlayer.Idled)) do
+                        if connection["Disable"] then
+                            connection["Disable"](connection)
+                        elseif connection["Disconnect"] then
+                            connection["Disconnect"](connection)
+                        end
+                    end
+                else
+                    Players.LocalPlayer.Idled:Connect(function()
+                        local vu = game:GetService("VirtualUser")
+                        vu:CaptureController()
+                        vu:ClickButton2(Vector2.new())
+                    end)
+                end
+            end
+        })
+
         local ConfigSection = Tabs.Settings:Section({
             Title = "Configuration",
         })
@@ -688,7 +744,7 @@ return function(Window, Tabs, WindUI)
 
         Tabs.AboutUs:Button({
             Title = "Submit Feedback",
-            Desc = "Need an update / Report a bug / Any Issue with script.",
+            Desc = "Need an update / Report a bug / Any Issue with script. (15 Min Cooldown)",
             Icon = "solar:chat-round-line-bold",
             Callback = function()
                 local COOLDOWN_TIME = 15 * 60
