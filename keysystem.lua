@@ -1,12 +1,12 @@
 --[[ 
     SAIRO HUB - SIGNATURE LUXURY KEY SYSTEM (SAIROAUTH EDITION)
-    - Recreated with Exact Lucide Asset IDs & Precise Mathematical Hierarchy
-    - Zero Raw Unicode Emojis (No Blurry/Cheap Rendering)
-    - Authentic Multi-Layer Avatar Halo, Gradient Ring & Online Indicator Backing
+    - Recreated with Exact Lucide Asset IDs & Spritesheet Crop Offsets
+    - Authentic Compact Mode Minimize Engine (Never Vertical Squish)
+    - Animated Placeholder Trailing Dots & Interactive Status Feedback
+    - Multi-Layer Avatar Halo, Gradient Ring & Online Dot Backing
     - Rotating Dual-Light Beam Border Animation
-    - Sairo Studios Verified Asset: rbxassetid://97736695351156
+    - Verified Service Asset: rbxassetid://97736695351156
     - Responsive Mobile/PC Layout & Centered ButtonContent Engine
-    - Direct Sairo API Verification & Auto-Login Memory
 ]]
 
 local SairoLibrary = {}
@@ -107,9 +107,9 @@ function SairoLibrary.Init()
     ChromeGrad.Parent = Chrome
 
     -- =========================================================================
-    -- HELPER: Lucide Image Builder (Zero Emojis)
+    -- HELPER: Lucide Image Builder (With Spritesheet Crop Offsets)
     -- =========================================================================
-    local function createLucideIcon(assetId, size, color, parent)
+    local function createLucideIcon(assetId, size, color, parent, rectOffset, rectSize)
         local icon = Instance.new("ImageLabel")
         icon.Name = "LucideIcon"
         icon.Size = UDim2.new(0, size, 0, size)
@@ -118,12 +118,16 @@ function SairoLibrary.Init()
         icon.ImageColor3 = color or Color3.fromRGB(108, 132, 163)
         icon.BorderSizePixel = 0
         icon.ZIndex = 5
+        if rectOffset and rectSize then
+            icon.ImageRectOffset = rectOffset
+            icon.ImageRectSize = rectSize
+        end
         icon.Parent = parent
         return icon
     end
 
     -- =========================================================================
-    -- 1. LEFT COLUMN: USER INFO (Exact Dump Layout)
+    -- 1. LEFT COLUMN: USER INFO
     -- =========================================================================
     local UserInfo = Instance.new("Frame")
     UserInfo.Name = "UserInfo"
@@ -133,8 +137,8 @@ function SairoLibrary.Init()
     UserInfo.ZIndex = 3
     UserInfo.Parent = Chrome
 
-    -- Header Icon & Title
-    local UserInfoIcon = createLucideIcon("rbxassetid://16898613869", 15, Color3.fromRGB(67, 207, 255), UserInfo)
+    -- Header Icon & Title (Using Lucide Spritesheet Crop Offset: 661, 869)
+    local UserInfoIcon = createLucideIcon("rbxassetid://16898613869", 15, Color3.fromRGB(67, 207, 255), UserInfo, Vector2.new(661, 869), Vector2.new(48, 48))
     UserInfoIcon.Position = UDim2.new(0, 20, 0, 19)
 
     local UserInfoLabel = Instance.new("TextLabel")
@@ -211,6 +215,7 @@ function SairoLibrary.Init()
     AvatarImg.Position = UDim2.new(0, 2, 0, 2)
     AvatarImg.BackgroundTransparency = 1
     AvatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+    AvatarImg.ScaleType = Enum.ScaleType.Crop
     AvatarImg.Parent = AvatarSeparator
 
     local AvatarImgCorner = Instance.new("UICorner")
@@ -272,8 +277,8 @@ function SairoLibrary.Init()
     ProfileDetails.BackgroundTransparency = 1
     ProfileDetails.Parent = UserInfo
 
-    local function createDetailRow(iconAsset, labelText, valueText, yPos, valueColor)
-        local ic = createLucideIcon(iconAsset, 16, valueColor or Color3.fromRGB(162, 181, 209), ProfileDetails)
+    local function createDetailRow(iconAsset, labelText, valueText, yPos, valueColor, rectOffset, rectSize)
+        local ic = createLucideIcon(iconAsset, 16, valueColor or Color3.fromRGB(162, 181, 209), ProfileDetails, rectOffset, rectSize)
         ic.Position = UDim2.new(0, 14, 0, yPos + 8)
 
         local lbl = Instance.new("TextLabel")
@@ -327,7 +332,7 @@ function SairoLibrary.Init()
 
     createDetailRow("rbxassetid://7734002839", "Executor", execName, 4)
     createDetailRow("rbxassetid://7734002839", "Device", deviceStr, 45)
-    createDetailRow("rbxassetid://16898613777", "HWID", "Available", 86)
+    createDetailRow("rbxassetid://16898613777", "HWID", "Available", 86, nil, Vector2.new(771, 257), Vector2.new(48, 48))
     createDetailRow("rbxassetid://7733799901", "Game", gameTitle, 127, Color3.fromRGB(47, 224, 151))
 
     -- Metrics (Session + Ping)
@@ -473,7 +478,7 @@ function SairoLibrary.Init()
     ColumnDivider.Parent = Chrome
 
     -- =========================================================================
-    -- 2. RIGHT COLUMN: MAIN PANEL (Exact Dump Layout)
+    -- 2. RIGHT COLUMN: MAIN PANEL
     -- =========================================================================
     local Main = Instance.new("Frame")
     Main.Name = "Main"
@@ -513,7 +518,7 @@ function SairoLibrary.Init()
     MainSub.TextXAlignment = Enum.TextXAlignment.Left
     MainSub.Parent = Header
 
-    -- Minimize & Close Buttons (Using Lucide Icons from dump)
+    -- Minimize & Close Buttons
     local MinBtn = Instance.new("ImageButton")
     MinBtn.Name = "Minimize"
     MinBtn.Size = UDim2.new(0, 32, 0, 32)
@@ -554,7 +559,7 @@ function SairoLibrary.Init()
     HeaderDiv.BorderSizePixel = 0
     HeaderDiv.Parent = Header
 
-    -- Active Service Card (With User's Uploaded Asset: rbxassetid://97736695351156)
+    -- Active Service Card (With User's Asset: rbxassetid://97736695351156)
     local ServiceCard = Instance.new("Frame")
     ServiceCard.Name = "ServiceCard"
     ServiceCard.Size = UDim2.new(1, -40, 0, 88)
@@ -707,7 +712,7 @@ function SairoLibrary.Init()
     KeyInput.Size = UDim2.new(1, -54, 1, 0)
     KeyInput.Position = UDim2.new(0, 46, 0, 0)
     KeyInput.BackgroundTransparency = 1
-    KeyInput.PlaceholderText = "Waiting for key.."
+    KeyInput.PlaceholderText = "Waiting for key..."
     KeyInput.PlaceholderColor3 = Color3.fromRGB(108, 132, 163)
     KeyInput.TextColor3 = Color3.fromRGB(239, 245, 255)
     KeyInput.Font = Enum.Font.GothamMedium
@@ -716,8 +721,21 @@ function SairoLibrary.Init()
     KeyInput.ClearTextOnFocus = false
     KeyInput.Parent = KeyInputWrap
 
+    -- Animated Key Placeholder Dots (Waiting for key, Waiting for key., Waiting for key.., Waiting for key...)
+    task.spawn(function()
+        local dotStates = {"Waiting for key", "Waiting for key.", "Waiting for key..", "Waiting for key..."}
+        local dIdx = 1
+        while ScreenGui.Parent do
+            task.wait(0.7)
+            if KeyInput and KeyInput.Text == "" then
+                dIdx = (dIdx % #dotStates) + 1
+                KeyInput.PlaceholderText = dotStates[dIdx]
+            end
+        end
+    end)
+
     -- Helper: Button Builder using Centered ButtonContent Engine
-    local function createStandardButton(name, widthScale, widthOffset, bgColor, iconAsset, labelText, parent, textSize)
+    local function createStandardButton(name, widthScale, widthOffset, bgColor, iconAsset, labelText, parent, textSize, rectOffset, rectSize)
         local btn = Instance.new("TextButton")
         btn.Name = name
         btn.Size = UDim2.new(widthScale, widthOffset, 1, 0)
@@ -746,7 +764,7 @@ function SairoLibrary.Init()
         layout.Padding = UDim.new(0, 8)
         layout.Parent = content
 
-        local ic = createLucideIcon(iconAsset, 16, Color3.fromRGB(239, 245, 255), content)
+        local ic = createLucideIcon(iconAsset, 16, Color3.fromRGB(239, 245, 255), content, rectOffset, rectSize)
         ic.LayoutOrder = 1
 
         local lbl = Instance.new("TextLabel")
@@ -761,7 +779,6 @@ function SairoLibrary.Init()
         lbl.LayoutOrder = 2
         lbl.Parent = content
 
-        -- Hover scale feedback
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0.15}):Play()
         end)
@@ -769,7 +786,7 @@ function SairoLibrary.Init()
             TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0}):Play()
         end)
 
-        return btn, lbl
+        return btn, lbl, ic
     end
 
     -- Primary Action Row (Get Key & Redeem)
@@ -803,7 +820,7 @@ function SairoLibrary.Init()
 
     local DiscordBtn = createStandardButton("Discord", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733993311", "Discord", UtilRow, 11)
     local CopyHwidBtn = createStandardButton("CopyHWID", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733764083", "Copy HWID", UtilRow, 11)
-    local SettingsBtn = createStandardButton("Settings", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://16898613777", "Settings", UtilRow, 11)
+    local SettingsBtn = createStandardButton("Settings", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://16898613777", "Settings", UtilRow, 11, Vector2.new(771, 257), Vector2.new(48, 48))
 
     -- Status Card Frame
     local StatusCard = Instance.new("Frame")
@@ -840,6 +857,53 @@ function SairoLibrary.Init()
     StatusSummary.TextXAlignment = Enum.TextXAlignment.Left
     StatusSummary.TextTruncate = Enum.TextTruncate.AtEnd
     StatusSummary.Parent = StatusCard
+
+    local StatusDetail = Instance.new("TextLabel")
+    StatusDetail.Name = "StatusDetail"
+    StatusDetail.Size = UDim2.new(1, -160, 0, 18)
+    StatusDetail.Position = UDim2.new(0, 42, 0, 26)
+    StatusDetail.BackgroundTransparency = 1
+    StatusDetail.Text = ""
+    StatusDetail.TextColor3 = Color3.fromRGB(162, 181, 209)
+    StatusDetail.Font = Enum.Font.Gotham
+    StatusDetail.TextSize = 9
+    StatusDetail.TextXAlignment = Enum.TextXAlignment.Left
+    StatusDetail.Visible = false
+    StatusDetail.Parent = StatusCard
+
+    local CopyErrorBtn = createStandardButton("CopyError", 0, 94, Color3.fromRGB(23, 36, 59), "rbxassetid://7733764083", "Copy Error", StatusCard, 9)
+    CopyErrorBtn.Size = UDim2.new(0, 94, 0, 26)
+    CopyErrorBtn.Position = UDim2.new(1, -108, 0, 10)
+    CopyErrorBtn.Visible = false
+
+    local lastErrorText = ""
+    CopyErrorBtn.MouseButton1Click:Connect(function()
+        if setclipboard and lastErrorText ~= "" then
+            setclipboard(lastErrorText)
+            StatusSummary.Text = "Error details copied!"
+        end
+    end)
+
+    -- Status Setter helper with Icon flipping
+    local function setStatus(text, color, iconAsset, detailText)
+        StatusSummary.Text = text
+        StatusSummary.TextColor3 = color or Color3.fromRGB(67, 207, 255)
+        StatusAccentLine.BackgroundColor3 = color or Color3.fromRGB(67, 207, 255)
+        StatusIcon.Image = iconAsset or "rbxassetid://7733964719"
+        StatusIcon.ImageColor3 = color or Color3.fromRGB(67, 207, 255)
+
+        if detailText and detailText ~= "" then
+            lastErrorText = detailText
+            StatusDetail.Text = detailText
+            StatusDetail.Visible = true
+            CopyErrorBtn.Visible = true
+            StatusSummary.Position = UDim2.new(0, 42, 0, 8)
+        else
+            StatusDetail.Visible = false
+            CopyErrorBtn.Visible = false
+            StatusSummary.Position = UDim2.new(0, 42, 0, 13)
+        end
+    end
 
     -- Premium Access Card
     local PremiumAccess = Instance.new("Frame")
@@ -930,9 +994,7 @@ function SairoLibrary.Init()
     ViewPlansBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard("https://sairo.online/pricing")
-            StatusSummary.Text = "Copied pricing link to clipboard!"
-            StatusSummary.TextColor3 = Color3.fromRGB(126, 87, 232)
-            StatusAccentLine.BackgroundColor3 = Color3.fromRGB(126, 87, 232)
+            setStatus("Pricing link copied.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
         end
     end)
 
@@ -940,13 +1002,14 @@ function SairoLibrary.Init()
     -- 3. RESPONSIVE MOBILE / PC ADAPTATION
     -- =========================================================================
     local isMobileView = false
+    local isCompactMode = false
+
     local function adaptLayout()
         local vp = Camera.ViewportSize
         local mobile = (vp.X < 640 or vp.Y < 480 or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled))
         if mobile ~= isMobileView then
             isMobileView = mobile
             if isMobileView then
-                -- Hide left sidebar & divider, center and expand main panel
                 UserInfo.Visible = false
                 ColumnDivider.Visible = false
                 Main.Size = UDim2.new(1, -16, 1, -16)
@@ -954,17 +1017,17 @@ function SairoLibrary.Init()
                 PremiumAccess.Visible = false
                 Shell.Size = UDim2.new(0, math.min(vp.X - 24, 460), 0, 440)
             else
-                -- Restore dual-column desktop structure
-                UserInfo.Visible = true
-                ColumnDivider.Visible = true
-                Main.Size = UDim2.new(0, 628, 0, 604)
-                Main.Position = UDim2.new(0, 294, 0, 8)
-                PremiumAccess.Visible = true
-                Shell.Size = UDim2.new(0, 930, 0, 620)
+                if not isCompactMode then
+                    UserInfo.Visible = true
+                    ColumnDivider.Visible = true
+                    Main.Size = UDim2.new(0, 628, 0, 604)
+                    Main.Position = UDim2.new(0, 294, 0, 8)
+                    PremiumAccess.Visible = true
+                    Shell.Size = UDim2.new(0, 930, 0, 620)
+                end
             end
         end
 
-        -- Auto UIScale down on smaller PC windows
         if not isMobileView then
             local availableH = vp.Y - 40
             local scaleH = math.clamp(availableH / 640, 0.7, 1)
@@ -1032,13 +1095,48 @@ function SairoLibrary.Init()
         closeWithAnimation()
     end)
 
-    local isMin = false
+    -- AUTHENTIC COMPACT MODE TOGGLE (From Snowy Timeline Dump)
     MinBtn.MouseButton1Click:Connect(function()
-        isMin = not isMin
-        if isMin then
-            TweenService:Create(Shell, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 340, 0, 70)}):Play()
+        isCompactMode = not isCompactMode
+        if isCompactMode then
+            -- Transition smoothly into Compact Mode
+            TweenService:Create(UserInfo, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, -286, 0, 8)
+            }):Play()
+            TweenService:Create(ColumnDivider, TweenInfo.new(0.2), {
+                BackgroundTransparency = 1
+            }):Play()
+            TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 8, 0, 8)
+            }):Play()
+            local tCompact = TweenService:Create(Shell, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 644, 0, 620)
+            })
+            tCompact:Play()
+            tCompact.Completed:Connect(function()
+                if isCompactMode then
+                    UserInfo.Visible = false
+                    ColumnDivider.Visible = false
+                end
+            end)
+            setStatus("Compact mode enabled.", Color3.fromRGB(162, 181, 209), "rbxassetid://7733964719")
         else
-            adaptLayout()
+            -- Restore Standard Dual-Column Layout
+            UserInfo.Visible = true
+            ColumnDivider.Visible = true
+            TweenService:Create(Shell, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 930, 0, 620)
+            }):Play()
+            TweenService:Create(UserInfo, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 8, 0, 8)
+            }):Play()
+            TweenService:Create(ColumnDivider, TweenInfo.new(0.2), {
+                BackgroundTransparency = 0.5
+            }):Play()
+            TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 294, 0, 8)
+            }):Play()
+            setStatus("Ready for " .. gameTitle, Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
         end
     end)
 
@@ -1055,18 +1153,14 @@ function SairoLibrary.Init()
     DiscordBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard("https://dsc.gg/sairo")
-            StatusSummary.Text = "Copied Discord invite to clipboard!"
-            StatusSummary.TextColor3 = Color3.fromRGB(88, 101, 242)
-            StatusAccentLine.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+            setStatus("Discord link copied.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
         end
     end)
 
     CopyHwidBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard(HWID)
-            StatusSummary.Text = "Copied HWID: " .. string.sub(HWID, 1, 16) .. "..."
-            StatusSummary.TextColor3 = Color3.fromRGB(47, 224, 151)
-            StatusAccentLine.BackgroundColor3 = Color3.fromRGB(47, 224, 151)
+            setStatus("HWID copied to clipboard.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
         end
     end)
 
@@ -1079,14 +1173,8 @@ function SairoLibrary.Init()
     -- =========================================================================
     -- 7. API & AUTHENTICATION LOGIC
     -- =========================================================================
-    local function setStatus(text, color)
-        StatusSummary.Text = text
-        StatusSummary.TextColor3 = color or Color3.fromRGB(67, 207, 255)
-        StatusAccentLine.BackgroundColor3 = color or Color3.fromRGB(67, 207, 255)
-    end
-
     local function getKey()
-        setStatus("Generating Key link...", Color3.fromRGB(67, 207, 255))
+        setStatus("Generating Key link...", Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
         local robloxName = LocalPlayer.Name
         local url = API_URL .. "/api/init"
         local body = HttpService:JSONEncode({hwid = HWID, robloxName = robloxName, devId = DEV_ID})
@@ -1104,24 +1192,24 @@ function SairoLibrary.Init()
             local data = HttpService:JSONDecode(response.Body)
             if data.url then
                 if setclipboard then setclipboard(data.url) end
-                setStatus("Key URL copied to clipboard! Open in browser.", Color3.fromRGB(47, 224, 151))
+                setStatus("Key URL copied to clipboard! Open in browser.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
             else
-                setStatus("Server error generating link.", Color3.fromRGB(244, 63, 94))
+                setStatus("Server error generating link.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "API did not return a valid checkpoint URL.")
             end
         else
-            setStatus("Connection failed to Sairo API.", Color3.fromRGB(244, 63, 94))
+            setStatus("Connection failed to Sairo API.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Could not connect to " .. API_URL)
         end
     end
 
     local function onVerify()
         local inputKey = KeyInput.Text:gsub("%s+", "")
         if inputKey == "" then
-            setStatus("Please enter a valid key.", Color3.fromRGB(246, 192, 79))
+            setStatus("Please enter a valid key.", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
             return
         end
 
         RedeemLbl.Text = "Checking..."
-        setStatus("Authenticating with Sairo gateway...", Color3.fromRGB(67, 207, 255))
+        setStatus("Authenticating with Sairo gateway...", Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
 
         local robloxName = LocalPlayer.Name
         local url = API_URL .. "/api/verify-key?key=" .. inputKey .. "&hwid=" .. HWID .. "&robloxName=" .. robloxName
@@ -1131,7 +1219,7 @@ function SairoLibrary.Init()
         if success then
             local sDecode, data = pcall(function() return HttpService:JSONDecode(response) end)
             if sDecode and data and data.status == "valid" then
-                setStatus("Access Granted! Launching script...", Color3.fromRGB(47, 224, 151))
+                setStatus("Access Granted! Launching script...", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
                 if writefile then
                     pcall(function() writefile("SairoAuth.txt", inputKey) end)
                 end
@@ -1142,12 +1230,12 @@ function SairoLibrary.Init()
                 end)
                 return
             elseif data and data.status == "invalid_hwid" then
-                setStatus("HWID mismatch! Key used on another device.", Color3.fromRGB(244, 63, 94))
+                setStatus("HWID mismatch! Key used on another device.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Your key is locked to another HWID.")
             else
-                setStatus("Key is invalid or expired. Please generate a new key.", Color3.fromRGB(244, 63, 94))
+                setStatus("Key is invalid or expired.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Please generate a new key or check for typos.")
             end
         else
-            setStatus("Failed to reach Sairo verification server.", Color3.fromRGB(244, 63, 94))
+            setStatus("Failed to reach Sairo verification server.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "HTTP GET failed for Sairo verify endpoint.")
         end
         RedeemLbl.Text = "Redeem"
     end
