@@ -1,12 +1,16 @@
 --[[ 
     SAIRO HUB - SIGNATURE LUXURY KEY SYSTEM (SAIROAUTH EDITION)
     - Recreated with Exact Lucide Asset IDs & Spritesheet Crop Offsets
+    - Fixed Button Pop Engine (Zero Layout-Shift & Perfectly Centered Pop)
+    - Interactive Bottom-Right Window Resize Handle (Draggable Scale Engine)
+    - Dynamic Multi-Size Layout Optimization (Fully Responsive Frame Anchoring)
+    - Live Functional Sairo Hub Connectivity Heartbeat & Latency Monitor
+    - Comprehensive Diagnostic Error Logger with One-Click Copy Error Button
     - Authentic Compact Mode Minimize Engine (Never Vertical Squish)
     - Animated Placeholder Trailing Dots & Interactive Status Feedback
     - Multi-Layer Avatar Halo, Gradient Ring & Online Dot Backing
     - Rotating Dual-Light Beam Border Animation
     - Verified Service Asset: rbxassetid://97736695351156
-    - Responsive Mobile/PC Layout & Centered ButtonContent Engine
 ]]
 
 local SairoLibrary = {}
@@ -132,11 +136,11 @@ function SairoLibrary.Init()
     end
 
     -- =========================================================================
-    -- 1. LEFT COLUMN: USER INFO
+    -- 1. LEFT COLUMN: USER INFO (Fully responsive height)
     -- =========================================================================
     local UserInfo = Instance.new("Frame")
     UserInfo.Name = "UserInfo"
-    UserInfo.Size = UDim2.new(0, 278, 0, 604)
+    UserInfo.Size = UDim2.new(0, 278, 1, -16)
     UserInfo.Position = UDim2.new(0, 8, 0, 8)
     UserInfo.BackgroundTransparency = 1
     UserInfo.ZIndex = 3
@@ -165,7 +169,7 @@ function SairoLibrary.Init()
     UserHeaderDivider.BorderSizePixel = 0
     UserHeaderDivider.Parent = UserInfo
 
-    -- Authentic Avatar Halo System (From Dump)
+    -- Authentic Avatar Halo System
     local AvatarHalo = Instance.new("Frame")
     AvatarHalo.Name = "AvatarHalo"
     AvatarHalo.Size = UDim2.new(0, 100, 0, 100)
@@ -241,6 +245,7 @@ function SairoLibrary.Init()
     DotBackCorner.Parent = OnlineDotBacking
 
     local OnlineDot = Instance.new("Frame")
+    OnlineDot.Name = "OnlineDot"
     OnlineDot.Size = UDim2.new(0, 12, 0, 12)
     OnlineDot.Position = UDim2.new(0, 5, 0, 5)
     OnlineDot.BackgroundColor3 = Color3.fromRGB(64, 237, 165)
@@ -340,11 +345,11 @@ function SairoLibrary.Init()
     createDetailRow("rbxassetid://16898613777", "HWID", "Available", 86, nil, Vector2.new(771, 257), Vector2.new(48, 48))
     createDetailRow("rbxassetid://7733799901", "Game", gameTitle, 127, Color3.fromRGB(47, 224, 151))
 
-    -- Metrics (Session + Ping)
+    -- Metrics (Session + Ping) - Docked above ConnectedCard
     local Metrics = Instance.new("Frame")
     Metrics.Name = "Metrics"
     Metrics.Size = UDim2.new(1, -36, 0, 66)
-    Metrics.Position = UDim2.new(0, 18, 0, 392)
+    Metrics.Position = UDim2.new(0, 18, 1, -156)
     Metrics.BackgroundTransparency = 1
     Metrics.Parent = UserInfo
 
@@ -439,10 +444,11 @@ function SairoLibrary.Init()
         end
     end)
 
-    -- Connected to Sairo Hub Badge Card
+    -- Connected to Sairo Hub Badge Card (Functional & Responsive Bottom Dock)
     local ConnectedCard = Instance.new("Frame")
+    ConnectedCard.Name = "ConnectedCard"
     ConnectedCard.Size = UDim2.new(1, -36, 0, 68)
-    ConnectedCard.Position = UDim2.new(0, 18, 0, 502)
+    ConnectedCard.Position = UDim2.new(0, 18, 1, -80)
     ConnectedCard.BackgroundTransparency = 1
     ConnectedCard.Parent = UserInfo
 
@@ -450,21 +456,23 @@ function SairoLibrary.Init()
     ConnIcon.Position = UDim2.new(0, 14, 0, 24)
 
     local ConnTitle = Instance.new("TextLabel")
+    ConnTitle.Name = "ConnTitle"
     ConnTitle.Size = UDim2.new(1, -56, 0, 24)
     ConnTitle.Position = UDim2.new(0, 44, 0, 11)
     ConnTitle.BackgroundTransparency = 1
-    ConnTitle.Text = "Connected to Sairo Hub"
-    ConnTitle.TextColor3 = Color3.fromRGB(47, 224, 151)
+    ConnTitle.Text = "Connecting to Hub..."
+    ConnTitle.TextColor3 = Color3.fromRGB(246, 192, 79)
     ConnTitle.Font = Enum.Font.GothamBold
     ConnTitle.TextSize = 12
     ConnTitle.TextXAlignment = Enum.TextXAlignment.Left
     ConnTitle.Parent = ConnectedCard
 
     local ConnSub = Instance.new("TextLabel")
+    ConnSub.Name = "ConnSub"
     ConnSub.Size = UDim2.new(1, -56, 0, 18)
     ConnSub.Position = UDim2.new(0, 44, 0, 35)
     ConnSub.BackgroundTransparency = 1
-    ConnSub.Text = "Sairo Hub is ready"
+    ConnSub.Text = "Checking server status..."
     ConnSub.TextColor3 = Color3.fromRGB(162, 181, 209)
     ConnSub.Font = Enum.Font.Gotham
     ConnSub.TextSize = 9
@@ -483,11 +491,11 @@ function SairoLibrary.Init()
     ColumnDivider.Parent = Chrome
 
     -- =========================================================================
-    -- 2. RIGHT COLUMN: MAIN PANEL
+    -- 2. RIGHT COLUMN: MAIN PANEL (Fully responsive width & height)
     -- =========================================================================
     local Main = Instance.new("Frame")
     Main.Name = "Main"
-    Main.Size = UDim2.new(0, 628, 0, 604)
+    Main.Size = UDim2.new(1, -302, 1, -16)
     Main.Position = UDim2.new(0, 294, 0, 8)
     Main.BackgroundTransparency = 1
     Main.ZIndex = 3
@@ -523,38 +531,102 @@ function SairoLibrary.Init()
     MainSub.TextXAlignment = Enum.TextXAlignment.Left
     MainSub.Parent = Header
 
-    -- Minimize & Close Buttons
-    local MinBtn = Instance.new("ImageButton")
-    MinBtn.Name = "Minimize"
-    MinBtn.Size = UDim2.new(0, 32, 0, 32)
-    MinBtn.Position = UDim2.new(1, -82, 0, 14)
-    MinBtn.BackgroundColor3 = Color3.fromRGB(23, 36, 59)
-    MinBtn.BorderSizePixel = 0
-    MinBtn.AutoButtonColor = false
-    MinBtn.Parent = Header
+    -- =========================================================================
+    -- BUTTON POP ANIMATION ENGINE (Fixed: Zero Layout-Shift & Perfectly Centered)
+    -- =========================================================================
+    local function applyButtonPop(btn, visual)
+        local target = visual or btn
+        local scale = target:FindFirstChildOfClass("UIScale")
+        if not scale then
+            scale = Instance.new("UIScale")
+            scale.Scale = 1
+            scale.Parent = target
+        end
 
-    local MinCorner = Instance.new("UICorner")
-    MinCorner.CornerRadius = UDim.new(0, 8)
-    MinCorner.Parent = MinBtn
+        local isDown = false
 
-    local MinIcon = createLucideIcon("rbxassetid://7734000129", 16, Color3.fromRGB(162, 181, 209), MinBtn)
-    MinIcon.Position = UDim2.new(0, 8, 0, 8)
+        local function doPress()
+            isDown = true
+            TweenService:Create(scale, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Scale = 0.92
+            }):Play()
+        end
 
-    local CloseBtn = Instance.new("ImageButton")
-    CloseBtn.Name = "Close"
-    CloseBtn.Size = UDim2.new(0, 32, 0, 32)
-    CloseBtn.Position = UDim2.new(1, -44, 0, 14)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(23, 36, 59)
-    CloseBtn.BorderSizePixel = 0
-    CloseBtn.AutoButtonColor = false
-    CloseBtn.Parent = Header
+        local function doRelease()
+            if isDown then
+                isDown = false
+                local tPop = TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                    Scale = 1.05
+                })
+                tPop:Play()
+                tPop.Completed:Connect(function()
+                    if not isDown then
+                        TweenService:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                            Scale = 1.0
+                        }):Play()
+                    end
+                end)
+            end
+        end
 
-    local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, 8)
-    CloseCorner.Parent = CloseBtn
+        btn.MouseButton1Down:Connect(doPress)
+        btn.MouseButton1Up:Connect(doRelease)
+        btn.MouseButton1Click:Connect(function()
+            if isDown then
+                doRelease()
+            end
+        end)
+        btn.MouseLeave:Connect(function()
+            if isDown then
+                isDown = false
+                TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Scale = 1.0
+                }):Play()
+            end
+        end)
+    end
 
-    local CloseIcon = createLucideIcon("rbxassetid://7743878857", 16, Color3.fromRGB(162, 181, 209), CloseBtn)
-    CloseIcon.Position = UDim2.new(0, 8, 0, 8)
+    -- Header Icon Button Helper (Centered Pop)
+    local function createHeaderIconButton(name, posX, iconAsset)
+        local btn = Instance.new("ImageButton")
+        btn.Name = name
+        btn.Size = UDim2.new(0, 32, 0, 32)
+        btn.Position = posX
+        btn.BackgroundTransparency = 1
+        btn.BorderSizePixel = 0
+        btn.AutoButtonColor = false
+        btn.Parent = Header
+
+        local visual = Instance.new("Frame")
+        visual.Name = "ButtonVisual"
+        visual.AnchorPoint = Vector2.new(0.5, 0.5)
+        visual.Position = UDim2.new(0.5, 0, 0.5, 0)
+        visual.Size = UDim2.new(1, 0, 1, 0)
+        visual.BackgroundColor3 = Color3.fromRGB(23, 36, 59)
+        visual.BorderSizePixel = 0
+        visual.Parent = btn
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = visual
+
+        local icon = createLucideIcon(iconAsset, 16, Color3.fromRGB(162, 181, 209), visual)
+        icon.AnchorPoint = Vector2.new(0.5, 0.5)
+        icon.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(visual, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(33, 50, 80)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(visual, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(23, 36, 59)}):Play()
+        end)
+
+        applyButtonPop(btn, visual)
+        return btn
+    end
+
+    local MinBtn = createHeaderIconButton("Minimize", UDim2.new(1, -82, 0, 14), "rbxassetid://7734000129")
+    local CloseBtn = createHeaderIconButton("Close", UDim2.new(1, -44, 0, 14), "rbxassetid://7743878857")
 
     local HeaderDiv = Instance.new("Frame")
     HeaderDiv.Size = UDim2.new(1, -40, 0, 1)
@@ -564,7 +636,7 @@ function SairoLibrary.Init()
     HeaderDiv.BorderSizePixel = 0
     HeaderDiv.Parent = Header
 
-    -- Active Service Card (With User's Asset: rbxassetid://97736695351156)
+    -- Active Service Card
     local ServiceCard = Instance.new("Frame")
     ServiceCard.Name = "ServiceCard"
     ServiceCard.Size = UDim2.new(1, -40, 0, 88)
@@ -726,7 +798,7 @@ function SairoLibrary.Init()
     KeyInput.ClearTextOnFocus = false
     KeyInput.Parent = KeyInputWrap
 
-    -- Animated Key Placeholder Dots (Waiting for key, Waiting for key., Waiting for key.., Waiting for key...)
+    -- Animated Key Placeholder Dots
     task.spawn(function()
         local dotStates = {"Waiting for key", "Waiting for key.", "Waiting for key..", "Waiting for key..."}
         local dIdx = 1
@@ -739,75 +811,32 @@ function SairoLibrary.Init()
         end
     end)
 
-    -- Pop Animation Engine (Tactile Press-Down & Spring Pop for All Buttons)
-    local function applyButtonPop(btn)
-        local scale = btn:FindFirstChildOfClass("UIScale")
-        if not scale then
-            scale = Instance.new("UIScale")
-            scale.Scale = 1
-            scale.Parent = btn
-        end
-
-        local isDown = false
-
-        local function doPress()
-            isDown = true
-            TweenService:Create(scale, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Scale = 0.92
-            }):Play()
-        end
-
-        local function doRelease()
-            if isDown then
-                isDown = false
-                local tPop = TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                    Scale = 1.05
-                })
-                tPop:Play()
-                tPop.Completed:Connect(function()
-                    if not isDown then
-                        TweenService:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                            Scale = 1.0
-                        }):Play()
-                    end
-                end)
-            end
-        end
-
-        btn.MouseButton1Down:Connect(doPress)
-        btn.MouseButton1Up:Connect(doRelease)
-        btn.MouseButton1Click:Connect(function()
-            if isDown then
-                doRelease()
-            end
-        end)
-        btn.MouseLeave:Connect(function()
-            if isDown then
-                isDown = false
-                TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Scale = 1.0
-                }):Play()
-            end
-        end)
-    end
-
-    -- Hook up Pop Animation on Header Buttons
-    applyButtonPop(MinBtn)
-    applyButtonPop(CloseBtn)
-
-    -- Helper: Button Builder using Centered ButtonContent Engine
+    -- =========================================================================
+    -- BUTTON BUILDER ENGINE (Zero UIListLayout Shifting & Symmetrically Centered)
+    -- =========================================================================
     local function createStandardButton(name, widthScale, widthOffset, bgColor, iconAsset, labelText, parent, textSize, rectOffset, rectSize)
+        -- Outer slot: Anchored inside UIListLayout with stable fixed bounds
         local btn = Instance.new("TextButton")
         btn.Name = name
         btn.Size = UDim2.new(widthScale, widthOffset, 1, 0)
-        btn.BackgroundColor3 = bgColor
+        btn.BackgroundTransparency = 1
         btn.Text = ""
         btn.AutoButtonColor = false
         btn.Parent = parent
 
+        -- Inner visual container: AnchorPoint (0.5, 0.5) ensures perfectly centered pop without moving neighbors!
+        local visual = Instance.new("Frame")
+        visual.Name = "ButtonVisual"
+        visual.AnchorPoint = Vector2.new(0.5, 0.5)
+        visual.Position = UDim2.new(0.5, 0, 0.5, 0)
+        visual.Size = UDim2.new(1, 0, 1, 0)
+        visual.BackgroundColor3 = bgColor
+        visual.BorderSizePixel = 0
+        visual.Parent = btn
+
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 10)
-        c.Parent = btn
+        c.Parent = visual
 
         local content = Instance.new("Frame")
         content.Name = "ButtonContent"
@@ -815,7 +844,7 @@ function SairoLibrary.Init()
         content.Position = UDim2.new(0.5, 0, 0.5, 0)
         content.AnchorPoint = Vector2.new(0.5, 0.5)
         content.BackgroundTransparency = 1
-        content.Parent = btn
+        content.Parent = visual
 
         local layout = Instance.new("UIListLayout")
         layout.FillDirection = Enum.FillDirection.Horizontal
@@ -841,19 +870,20 @@ function SairoLibrary.Init()
         lbl.Parent = content
 
         btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0.15}):Play()
+            TweenService:Create(visual, TweenInfo.new(0.18), {BackgroundTransparency = 0.15}):Play()
         end)
         btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0}):Play()
+            TweenService:Create(visual, TweenInfo.new(0.18), {BackgroundTransparency = 0}):Play()
         end)
 
-        applyButtonPop(btn)
+        applyButtonPop(btn, visual)
 
-        return btn, lbl, ic
+        return btn, lbl, ic, visual
     end
 
     -- Primary Action Row (Get Key & Redeem)
     local PrimaryRow = Instance.new("Frame")
+    PrimaryRow.Name = "PrimaryRow"
     PrimaryRow.Size = UDim2.new(1, -40, 0, 46)
     PrimaryRow.Position = UDim2.new(0, 20, 0, 276)
     PrimaryRow.BackgroundTransparency = 1
@@ -870,6 +900,7 @@ function SairoLibrary.Init()
 
     -- Utility Row (Discord, CopyHWID, Live Support)
     local UtilRow = Instance.new("Frame")
+    UtilRow.Name = "UtilRow"
     UtilRow.Size = UDim2.new(1, -40, 0, 38)
     UtilRow.Position = UDim2.new(0, 20, 0, 334)
     UtilRow.BackgroundTransparency = 1
@@ -885,11 +916,11 @@ function SairoLibrary.Init()
     local CopyHwidBtn = createStandardButton("CopyHWID", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733764083", "Copy HWID", UtilRow, 11)
     local LiveSupportBtn = createStandardButton("LiveSupport", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733964719", "Live Support", UtilRow, 10)
 
-    -- Status Card Frame
+    -- Status Card Frame (Docked dynamically above Premium Access)
     local StatusCard = Instance.new("Frame")
     StatusCard.Name = "StatusCard"
     StatusCard.Size = UDim2.new(1, -40, 0, 46)
-    StatusCard.Position = UDim2.new(0, 20, 0, 384)
+    StatusCard.Position = UDim2.new(0, 20, 1, -212)
     StatusCard.BackgroundTransparency = 1
     StatusCard.ClipsDescendants = true
     StatusCard.Parent = Main
@@ -910,7 +941,7 @@ function SairoLibrary.Init()
 
     local StatusSummary = Instance.new("TextLabel")
     StatusSummary.Name = "StatusSummary"
-    StatusSummary.Size = UDim2.new(1, -58, 0, 20)
+    StatusSummary.Size = UDim2.new(1, -156, 0, 20)
     StatusSummary.Position = UDim2.new(0, 42, 0, 13)
     StatusSummary.BackgroundTransparency = 1
     StatusSummary.Text = "Ready for " .. gameTitle
@@ -923,7 +954,7 @@ function SairoLibrary.Init()
 
     local StatusDetail = Instance.new("TextLabel")
     StatusDetail.Name = "StatusDetail"
-    StatusDetail.Size = UDim2.new(1, -160, 0, 18)
+    StatusDetail.Size = UDim2.new(1, -156, 0, 18)
     StatusDetail.Position = UDim2.new(0, 42, 0, 26)
     StatusDetail.BackgroundTransparency = 1
     StatusDetail.Text = ""
@@ -931,24 +962,36 @@ function SairoLibrary.Init()
     StatusDetail.Font = Enum.Font.Gotham
     StatusDetail.TextSize = 9
     StatusDetail.TextXAlignment = Enum.TextXAlignment.Left
+    StatusDetail.TextTruncate = Enum.TextTruncate.AtEnd
     StatusDetail.Visible = false
     StatusDetail.Parent = StatusCard
 
-    local CopyErrorBtn = createStandardButton("CopyError", 0, 94, Color3.fromRGB(23, 36, 59), "rbxassetid://7733764083", "Copy Error", StatusCard, 9)
-    CopyErrorBtn.Size = UDim2.new(0, 94, 0, 26)
-    CopyErrorBtn.Position = UDim2.new(1, -108, 0, 10)
+    local CopyErrorBtn = createStandardButton("CopyError", 0, 96, Color3.fromRGB(185, 28, 28), "rbxassetid://7733764083", "Copy Error", StatusCard, 9)
+    CopyErrorBtn.Size = UDim2.new(0, 96, 0, 26)
+    CopyErrorBtn.Position = UDim2.new(1, -100, 0.5, -13)
     CopyErrorBtn.Visible = false
 
-    local lastErrorText = ""
+    local lastFullDiagnostic = ""
     CopyErrorBtn.MouseButton1Click:Connect(function()
-        if setclipboard and lastErrorText ~= "" then
-            setclipboard(lastErrorText)
-            StatusSummary.Text = "Error details copied!"
+        if setclipboard and lastFullDiagnostic ~= "" then
+            setclipboard(lastFullDiagnostic)
+            StatusSummary.Text = "Diagnostic error copied!"
+            StatusSummary.TextColor3 = Color3.fromRGB(47, 224, 151)
+            StatusIcon.Image = "rbxassetid://7733919427"
+            StatusIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+            task.delay(3, function()
+                if ScreenGui.Parent then
+                    StatusSummary.Text = "Ready for " .. gameTitle
+                    StatusSummary.TextColor3 = Color3.fromRGB(246, 192, 79)
+                    StatusIcon.Image = "rbxassetid://7733964719"
+                    StatusIcon.ImageColor3 = Color3.fromRGB(246, 192, 79)
+                end
+            end)
         end
     end)
 
-    -- Status Setter helper with Icon flipping
-    local function setStatus(text, color, iconAsset, detailText)
+    -- Status Setter helper with Icon flipping & diagnostic reporting
+    local function setStatus(text, color, iconAsset, detailText, fullDiagnosticReport)
         StatusSummary.Text = text
         StatusSummary.TextColor3 = color or Color3.fromRGB(246, 192, 79)
         StatusAccentLine.BackgroundColor3 = color or Color3.fromRGB(246, 192, 79)
@@ -956,23 +999,60 @@ function SairoLibrary.Init()
         StatusIcon.ImageColor3 = color or Color3.fromRGB(246, 192, 79)
 
         if detailText and detailText ~= "" then
-            lastErrorText = detailText
             StatusDetail.Text = detailText
             StatusDetail.Visible = true
-            CopyErrorBtn.Visible = true
             StatusSummary.Position = UDim2.new(0, 42, 0, 8)
         else
             StatusDetail.Visible = false
-            CopyErrorBtn.Visible = false
             StatusSummary.Position = UDim2.new(0, 42, 0, 13)
+        end
+
+        if fullDiagnosticReport and fullDiagnosticReport ~= "" then
+            lastFullDiagnostic = fullDiagnosticReport
+            CopyErrorBtn.Visible = true
+            warn("[SairoAuth Diagnostic Report]\n" .. fullDiagnosticReport)
+        else
+            CopyErrorBtn.Visible = false
         end
     end
 
-    -- Premium Access Card
+    -- Diagnostic Report Generator
+    local function buildDiagnosticReport(context, errCode, errMsg, rawRes, reqUrl)
+        return string.format(
+            "=== SAIRO HUB DIAGNOSTIC ERROR REPORT ===\n" ..
+            "Timestamp: %s UTC\n" ..
+            "Context: %s\n" ..
+            "Error Code: %s\n" ..
+            "Message: %s\n" ..
+            "Target Endpoint: %s\n" ..
+            "Roblox PlaceId: %s (%s)\n" ..
+            "Client HWID: %s\n" ..
+            "Player: %s (@%s)\n" ..
+            "Executor: %s\n" ..
+            "Device: %s\n" ..
+            "Raw API Response:\n%s\n" ..
+            "=========================================",
+            os.date("!%Y-%m-%d %H:%M:%S"),
+            tostring(context or "General"),
+            tostring(errCode or "UNKNOWN_ERR"),
+            tostring(errMsg or "An unexpected issue occurred."),
+            tostring(reqUrl or API_URL),
+            tostring(game.PlaceId),
+            gameTitle,
+            HWID,
+            LocalPlayer.DisplayName or LocalPlayer.Name,
+            LocalPlayer.Name,
+            execName,
+            deviceStr,
+            tostring(rawRes or "N/A")
+        )
+    end
+
+    -- Premium Access Card (Docked dynamically at the bottom of Main)
     local PremiumAccess = Instance.new("Frame")
     PremiumAccess.Name = "PremiumAccess"
     PremiumAccess.Size = UDim2.new(1, -40, 0, 146)
-    PremiumAccess.Position = UDim2.new(0, 20, 0, 442)
+    PremiumAccess.Position = UDim2.new(0, 20, 1, -156)
     PremiumAccess.BackgroundTransparency = 1
     PremiumAccess.ClipsDescendants = true
     PremiumAccess.Parent = Main
@@ -1062,7 +1142,98 @@ function SairoLibrary.Init()
     end)
 
     -- =========================================================================
-    -- 3. RESPONSIVE MOBILE / PC ADAPTATION
+    -- 3. BOTTOM-RIGHT WINDOW RESIZE HANDLE (Draggable & Adaptive)
+    -- =========================================================================
+    local ResizeHandle = Instance.new("ImageButton")
+    ResizeHandle.Name = "ResizeHandle"
+    ResizeHandle.Size = UDim2.new(0, 24, 0, 24)
+    ResizeHandle.Position = UDim2.new(1, -2, 1, -2)
+    ResizeHandle.AnchorPoint = Vector2.new(1, 1)
+    ResizeHandle.BackgroundTransparency = 1
+    ResizeHandle.BorderSizePixel = 0
+    ResizeHandle.AutoButtonColor = false
+    ResizeHandle.ZIndex = 25
+    ResizeHandle.Parent = Chrome
+
+    -- 3 Sleek Subtle Grey Diagonal Grip Lines
+    local function makeGripLine(offset, length)
+        local line = Instance.new("Frame")
+        line.Name = "GripLine"
+        line.Size = UDim2.new(0, length, 0, 2)
+        line.AnchorPoint = Vector2.new(1, 1)
+        line.Position = UDim2.new(1, offset, 1, offset)
+        line.Rotation = -45
+        line.BackgroundColor3 = Color3.fromRGB(108, 132, 163)
+        line.BorderSizePixel = 0
+        line.ZIndex = 26
+        line.Parent = ResizeHandle
+        local lc = Instance.new("UICorner")
+        lc.CornerRadius = UDim.new(1, 0)
+        lc.Parent = line
+        return line
+    end
+
+    local gripLines = {
+        makeGripLine(-4, 5),
+        makeGripLine(-7, 9),
+        makeGripLine(-10, 13)
+    }
+
+    local function setGripColor(c)
+        for _, l in ipairs(gripLines) do
+            TweenService:Create(l, TweenInfo.new(0.15), {BackgroundColor3 = c}):Play()
+        end
+    end
+
+    ResizeHandle.MouseEnter:Connect(function()
+        setGripColor(Color3.fromRGB(246, 192, 79))
+    end)
+    ResizeHandle.MouseLeave:Connect(function()
+        setGripColor(Color3.fromRGB(108, 132, 163))
+    end)
+
+    local isResizing = false
+    local resizeStartMouse = Vector2.new(0, 0)
+    local resizeStartSize = Vector2.new(0, 0)
+
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isResizing = true
+            resizeStartMouse = Vector2.new(input.Position.X, input.Position.Y)
+            resizeStartSize = Vector2.new(Shell.AbsoluteSize.X, Shell.AbsoluteSize.Y)
+            setGripColor(Color3.fromRGB(249, 115, 22))
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if isResizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local deltaX = input.Position.X - resizeStartMouse.X
+            local deltaY = input.Position.Y - resizeStartMouse.Y
+            local curScale = ShellScale.Scale > 0 and ShellScale.Scale or 1
+
+            local minW = 580
+            local maxW = 1200
+            local minH = 490
+            local maxH = 850
+
+            local newW = math.clamp((resizeStartSize.X + deltaX) / curScale, minW, maxW)
+            local newH = math.clamp((resizeStartSize.Y + deltaY) / curScale, minH, maxH)
+
+            Shell.Size = UDim2.new(0, math.floor(newW), 0, math.floor(newH))
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if isResizing then
+                isResizing = false
+                setGripColor(Color3.fromRGB(108, 132, 163))
+            end
+        end
+    end)
+
+    -- =========================================================================
+    -- 4. RESPONSIVE MOBILE / PC ADAPTATION
     -- =========================================================================
     local isMobileView = false
     local isCompactMode = false
@@ -1083,7 +1254,7 @@ function SairoLibrary.Init()
                 if not isCompactMode then
                     UserInfo.Visible = true
                     ColumnDivider.Visible = true
-                    Main.Size = UDim2.new(0, 628, 0, 604)
+                    Main.Size = UDim2.new(1, -302, 1, -16)
                     Main.Position = UDim2.new(0, 294, 0, 8)
                     PremiumAccess.Visible = true
                     Shell.Size = UDim2.new(0, 930, 0, 620)
@@ -1104,13 +1275,13 @@ function SairoLibrary.Init()
     adaptLayout()
 
     -- =========================================================================
-    -- 4. DRAGGABLE WINDOW LOGIC
+    -- 5. DRAGGABLE WINDOW LOGIC
     -- =========================================================================
     local isDragging = false
     local dragStart, startPos
 
     local function onDragStart(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not isResizing then
             isDragging = true
             dragStart = input.Position
             startPos = Shell.Position
@@ -1135,7 +1306,7 @@ function SairoLibrary.Init()
     UserInputService.InputEnded:Connect(onDragEnd)
 
     -- =========================================================================
-    -- 5. SMOOTH POP-IN & POP-OUT ANIMATIONS
+    -- 6. SMOOTH POP-IN & POP-OUT ANIMATIONS
     -- =========================================================================
     local isDismissing = false
     local function closeWithAnimation(callback)
@@ -1158,7 +1329,7 @@ function SairoLibrary.Init()
         closeWithAnimation()
     end)
 
-    -- AUTHENTIC COMPACT MODE TOGGLE (From Snowy Timeline Dump)
+    -- AUTHENTIC COMPACT MODE TOGGLE
     MinBtn.MouseButton1Click:Connect(function()
         isCompactMode = not isCompactMode
         if isCompactMode then
@@ -1170,7 +1341,8 @@ function SairoLibrary.Init()
                 BackgroundTransparency = 1
             }):Play()
             TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 8, 0, 8)
+                Position = UDim2.new(0, 8, 0, 8),
+                Size = UDim2.new(1, -16, 1, -16)
             }):Play()
             local tCompact = TweenService:Create(Shell, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0, 644, 0, 620)
@@ -1197,13 +1369,14 @@ function SairoLibrary.Init()
                 BackgroundTransparency = 0.5
             }):Play()
             TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 294, 0, 8)
+                Position = UDim2.new(0, 294, 0, 8),
+                Size = UDim2.new(1, -302, 1, -16)
             }):Play()
             setStatus("Ready for " .. gameTitle, Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
         end
     end)
 
-    -- Entrance Scale Animation (0.8x -> 1.05x -> 1.0x)
+    -- Entrance Scale Animation
     local targetScale = ShellScale.Scale
     ShellScale.Scale = 0.78
     Backdrop.BackgroundTransparency = 1
@@ -1211,7 +1384,7 @@ function SairoLibrary.Init()
     TweenService:Create(ShellScale, TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = targetScale}):Play()
 
     -- =========================================================================
-    -- 6. BUTTON ACTIONS
+    -- 7. BUTTON ACTIONS
     -- =========================================================================
     DiscordBtn.MouseButton1Click:Connect(function()
         if setclipboard then
@@ -1238,7 +1411,65 @@ function SairoLibrary.Init()
     end)
 
     -- =========================================================================
-    -- 7. API & AUTHENTICATION LOGIC
+    -- 8. LIVE FUNCTIONAL HUB CONNECTIVITY HEARTBEAT
+    -- =========================================================================
+    local isHubConnected = false
+    local function testHubConnection()
+        local t0 = os.clock()
+        local testUrl = API_URL .. "/api/announcement"
+        local success, res = pcall(function()
+            local req = syn and syn.request or http and http.request or request
+            if req then
+                return req({Url = testUrl, Method = "GET"})
+            else
+                return {StatusCode = 200, Body = game:HttpGet(testUrl)}
+            end
+        end)
+
+        local latency = math.floor((os.clock() - t0) * 1000)
+
+        if success and res and (res.StatusCode == 200 or res.StatusCode == nil) then
+            isHubConnected = true
+            ConnTitle.Text = "Connected to Sairo Hub"
+            ConnTitle.TextColor3 = Color3.fromRGB(47, 224, 151)
+            ConnIcon.Image = "rbxassetid://7733919427"
+            ConnIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+            ConnSub.Text = string.format("Operational (%d ms latency)", latency)
+            ConnSub.TextColor3 = Color3.fromRGB(162, 181, 209)
+            OnlineDot.BackgroundColor3 = Color3.fromRGB(64, 237, 165)
+        else
+            isHubConnected = false
+            ConnTitle.Text = "Disconnected from Hub"
+            ConnTitle.TextColor3 = Color3.fromRGB(244, 63, 94)
+            ConnIcon.Image = "rbxassetid://7734000129"
+            ConnIcon.ImageColor3 = Color3.fromRGB(244, 63, 94)
+            ConnSub.Text = "Server Unreachable (Offline)"
+            ConnSub.TextColor3 = Color3.fromRGB(244, 63, 94)
+            OnlineDot.BackgroundColor3 = Color3.fromRGB(244, 63, 94)
+
+            local errReport = buildDiagnosticReport(
+                "Heartbeat Health Check",
+                "HUB_OFFLINE",
+                "Unable to establish handshake with Sairo API.",
+                tostring(res and res.Body or "No response received"),
+                testUrl
+            )
+            setStatus("Warning: Server Unreachable", Color3.fromRGB(244, 63, 94), "rbxassetid://7734000129", "Cannot reach Sairo API. Check your internet or Discord.", errReport)
+        end
+    end
+
+    -- Initial Handshake + Recurring Background Heartbeat
+    task.spawn(function()
+        task.wait(0.2)
+        testHubConnection()
+        while ScreenGui.Parent do
+            task.wait(15)
+            testHubConnection()
+        end
+    end)
+
+    -- =========================================================================
+    -- 9. API & AUTHENTICATION LOGIC (With Comprehensive Diagnostics)
     -- =========================================================================
     local function getKey()
         setStatus("Generating Key link...", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
@@ -1251,20 +1482,36 @@ function SairoLibrary.Init()
             if req then
                 return req({Url = url, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = body})
             else
-                return {StatusCode = 500, Body = "Executor not supported"}
+                return {StatusCode = 500, Body = "Executor does not support HTTP requests"}
             end
         end)
 
-        if success and response.StatusCode == 200 then
-            local data = HttpService:JSONDecode(response.Body)
-            if data.url then
+        if success and response and response.StatusCode == 200 then
+            local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(response.Body) end)
+            if decodeSuccess and data and data.url then
                 if setclipboard then setclipboard(data.url) end
                 setStatus("Key URL copied to clipboard! Open in browser.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
             else
-                setStatus("Server error generating link.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "API did not return a valid checkpoint URL.")
+                local report = buildDiagnosticReport(
+                    "Key Generation Init",
+                    "MALFORMED_RESPONSE",
+                    "API did not return a valid checkpoint URL in JSON body.",
+                    response.Body,
+                    url
+                )
+                setStatus("Server error generating link.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "API returned an invalid checkpoint response.", report)
             end
         else
-            setStatus("Connection failed to Sairo API.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Could not connect to " .. API_URL)
+            local statusC = (response and response.StatusCode) or "ERR_CONN"
+            local rawB = (response and response.Body) or tostring(response)
+            local report = buildDiagnosticReport(
+                "Key Generation Init",
+                "HTTP_" .. tostring(statusC),
+                "Connection failed while calling /api/init on Sairo API.",
+                rawB,
+                url
+            )
+            setStatus("Connection failed to Sairo API.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Could not reach Sairo API (Status: " .. tostring(statusC) .. ")", report)
         end
     end
 
@@ -1283,7 +1530,7 @@ function SairoLibrary.Init()
 
         local success, response = pcall(function() return game:HttpGet(url) end)
 
-        if success then
+        if success and response then
             local sDecode, data = pcall(function() return HttpService:JSONDecode(response) end)
             if sDecode and data and data.status == "valid" then
                 setStatus("Access Granted! Launching script...", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
@@ -1296,13 +1543,35 @@ function SairoLibrary.Init()
                     isVerified = true
                 end)
                 return
-            elseif data and data.status == "invalid_hwid" then
-                setStatus("HWID mismatch! Key used on another device.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Your key is locked to another HWID.")
+            elseif sDecode and data and data.status == "invalid_hwid" then
+                local report = buildDiagnosticReport(
+                    "Key Verification",
+                    "HWID_MISMATCH",
+                    "This license key is already locked to another hardware identity.",
+                    response,
+                    url
+                )
+                setStatus("HWID mismatch! Key used on another device.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Key is hardware locked to another device.", report)
             else
-                setStatus("Key is invalid or expired.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Please generate a new key or check for typos.")
+                local serverMsg = (data and (data.message or data.error)) or "Key is invalid or expired."
+                local report = buildDiagnosticReport(
+                    "Key Verification",
+                    "INVALID_KEY",
+                    tostring(serverMsg),
+                    response,
+                    url
+                )
+                setStatus("Key is invalid or expired.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", tostring(serverMsg), report)
             end
         else
-            setStatus("Failed to reach Sairo verification server.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "HTTP GET failed for Sairo verify endpoint.")
+            local report = buildDiagnosticReport(
+                "Key Verification",
+                "HTTP_GET_FAILED",
+                "HTTP GET request to Sairo verify endpoint failed.",
+                tostring(response),
+                url
+            )
+            setStatus("Failed to reach Sairo verification server.", Color3.fromRGB(244, 63, 94), "rbxassetid://7733964719", "Network error contacting verification endpoint.", report)
         end
         RedeemLbl.Text = "Redeem"
     end
