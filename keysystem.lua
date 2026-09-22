@@ -2,7 +2,7 @@
     SAIRO HUB - SIGNATURE LUXURY KEY SYSTEM (SAIROAUTH EDITION)
     - Recreated with Exact Lucide Asset IDs & Spritesheet Crop Offsets
     - Fixed Button Pop Engine (Zero Layout-Shift & Perfectly Centered Pop)
-    - Interactive Bottom-Right Window Resize Handle (Draggable Scale Engine)
+    - Full Automatic Multi-Device & Mobile Viewport Auto-Scaling (Zero Clipping)
     - Dynamic Multi-Size Layout Optimization (Fully Responsive Frame Anchoring)
     - Live Functional Sairo Hub Connectivity Heartbeat & Latency Monitor
     - Comprehensive Diagnostic Error Logger with One-Click Copy Error Button
@@ -1142,146 +1142,61 @@ function SairoLibrary.Init()
     end)
 
     -- =========================================================================
-    -- 3. BOTTOM-RIGHT WINDOW RESIZE HANDLE (Draggable & Adaptive)
-    -- =========================================================================
-    local ResizeHandle = Instance.new("ImageButton")
-    ResizeHandle.Name = "ResizeHandle"
-    ResizeHandle.Size = UDim2.new(0, 24, 0, 24)
-    ResizeHandle.Position = UDim2.new(1, -2, 1, -2)
-    ResizeHandle.AnchorPoint = Vector2.new(1, 1)
-    ResizeHandle.BackgroundTransparency = 1
-    ResizeHandle.BorderSizePixel = 0
-    ResizeHandle.AutoButtonColor = false
-    ResizeHandle.ZIndex = 25
-    ResizeHandle.Parent = Chrome
-
-    -- 3 Sleek Subtle Grey Diagonal Grip Lines
-    local function makeGripLine(offset, length)
-        local line = Instance.new("Frame")
-        line.Name = "GripLine"
-        line.Size = UDim2.new(0, length, 0, 2)
-        line.AnchorPoint = Vector2.new(1, 1)
-        line.Position = UDim2.new(1, offset, 1, offset)
-        line.Rotation = -45
-        line.BackgroundColor3 = Color3.fromRGB(108, 132, 163)
-        line.BorderSizePixel = 0
-        line.ZIndex = 26
-        line.Parent = ResizeHandle
-        local lc = Instance.new("UICorner")
-        lc.CornerRadius = UDim.new(1, 0)
-        lc.Parent = line
-        return line
-    end
-
-    local gripLines = {
-        makeGripLine(-4, 5),
-        makeGripLine(-7, 9),
-        makeGripLine(-10, 13)
-    }
-
-    local function setGripColor(c)
-        for _, l in ipairs(gripLines) do
-            TweenService:Create(l, TweenInfo.new(0.15), {BackgroundColor3 = c}):Play()
-        end
-    end
-
-    ResizeHandle.MouseEnter:Connect(function()
-        setGripColor(Color3.fromRGB(246, 192, 79))
-    end)
-    ResizeHandle.MouseLeave:Connect(function()
-        setGripColor(Color3.fromRGB(108, 132, 163))
-    end)
-
-    local isResizing = false
-    local resizeStartMouse = Vector2.new(0, 0)
-    local resizeStartSize = Vector2.new(0, 0)
-
-    ResizeHandle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isResizing = true
-            resizeStartMouse = Vector2.new(input.Position.X, input.Position.Y)
-            resizeStartSize = Vector2.new(Shell.AbsoluteSize.X, Shell.AbsoluteSize.Y)
-            setGripColor(Color3.fromRGB(249, 115, 22))
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if isResizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local deltaX = input.Position.X - resizeStartMouse.X
-            local deltaY = input.Position.Y - resizeStartMouse.Y
-            local curScale = ShellScale.Scale > 0 and ShellScale.Scale or 1
-
-            local minW = 580
-            local maxW = 1200
-            local minH = 490
-            local maxH = 850
-
-            local newW = math.clamp((resizeStartSize.X + deltaX) / curScale, minW, maxW)
-            local newH = math.clamp((resizeStartSize.Y + deltaY) / curScale, minH, maxH)
-
-            Shell.Size = UDim2.new(0, math.floor(newW), 0, math.floor(newH))
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if isResizing then
-                isResizing = false
-                setGripColor(Color3.fromRGB(108, 132, 163))
-            end
-        end
-    end)
-
-    -- =========================================================================
-    -- 4. RESPONSIVE MOBILE / PC ADAPTATION
+    -- 3. RESPONSIVE MULTI-DEVICE AUTO-SCALING ENGINE (Phone & Desktop)
     -- =========================================================================
     local isMobileView = false
     local isCompactMode = false
 
     local function adaptLayout()
         local vp = Camera.ViewportSize
-        local mobile = (vp.X < 640 or vp.Y < 480 or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled))
-        if mobile ~= isMobileView then
-            isMobileView = mobile
+        -- Automatically detect phone/small screens or touch-only mobile devices
+        local isMobile = (vp.X < 940 or vp.Y < 640 or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled))
+
+        if isMobile ~= isMobileView then
+            isMobileView = isMobile
             if isMobileView then
+                -- Single-Column Mobile Mode: Ergonomic, touch-friendly, focused key entry
                 UserInfo.Visible = false
                 ColumnDivider.Visible = false
                 Main.Size = UDim2.new(1, -16, 1, -16)
                 Main.Position = UDim2.new(0, 8, 0, 8)
-                PremiumAccess.Visible = false
-                Shell.Size = UDim2.new(0, math.min(vp.X - 24, 460), 0, 440)
+                Shell.Size = UDim2.new(0, 644, 0, 620)
             else
+                -- Restore Standard Dual-Column Layout if not in Compact Mode
                 if not isCompactMode then
                     UserInfo.Visible = true
                     ColumnDivider.Visible = true
                     Main.Size = UDim2.new(1, -302, 1, -16)
                     Main.Position = UDim2.new(0, 294, 0, 8)
-                    PremiumAccess.Visible = true
                     Shell.Size = UDim2.new(0, 930, 0, 620)
                 end
             end
         end
 
-        if not isMobileView then
-            local availableH = vp.Y - 40
-            local scaleH = math.clamp(availableH / 640, 0.7, 1)
-            ShellScale.Scale = scaleH
-        else
-            ShellScale.Scale = 1
-        end
+        -- Automatic Safe-Bounds Multi-Device Scaling (Phone, Tablet, Laptop, Ultrawide)
+        local safeMarginX = isMobileView and 16 or 32
+        local safeMarginY = isMobileView and 16 or 32
+        local availableW = math.max(vp.X - safeMarginX, 100)
+        local availableH = math.max(vp.Y - safeMarginY, 100)
+        local targetW = (isMobileView or isCompactMode) and 644 or 930
+        local targetH = 620
+
+        local fitScale = math.min(availableW / targetW, availableH / targetH)
+        -- Keep 1.0 on large displays, smoothly scale down on smaller screens/phones down to 0.40
+        ShellScale.Scale = math.clamp(fitScale, 0.40, 1.0)
     end
 
     Camera:GetPropertyChangedSignal("ViewportSize"):Connect(adaptLayout)
     adaptLayout()
 
     -- =========================================================================
-    -- 5. DRAGGABLE WINDOW LOGIC
+    -- 4. DRAGGABLE WINDOW LOGIC
     -- =========================================================================
     local isDragging = false
     local dragStart, startPos
 
     local function onDragStart(input)
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not isResizing then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDragging = true
             dragStart = input.Position
             startPos = Shell.Position
@@ -1306,7 +1221,7 @@ function SairoLibrary.Init()
     UserInputService.InputEnded:Connect(onDragEnd)
 
     -- =========================================================================
-    -- 6. SMOOTH POP-IN & POP-OUT ANIMATIONS
+    -- 5. SMOOTH POP-IN & POP-OUT ANIMATIONS
     -- =========================================================================
     local isDismissing = false
     local function closeWithAnimation(callback)
@@ -1316,7 +1231,7 @@ function SairoLibrary.Init()
         local tPop = TweenService:Create(ShellScale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = ShellScale.Scale * 1.06})
         tPop:Play()
         tPop.Completed:Connect(function()
-            local tShrink = TweenService:Create(ShellScale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.65})
+            local tShrink = TweenService:Create(ShellScale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.5})
             tShrink:Play()
             tShrink.Completed:Connect(function()
                 ScreenGui:Destroy()
@@ -1331,6 +1246,11 @@ function SairoLibrary.Init()
 
     -- AUTHENTIC COMPACT MODE TOGGLE
     MinBtn.MouseButton1Click:Connect(function()
+        if isMobileView then
+            setStatus("Optimized for mobile screen.", Color3.fromRGB(162, 181, 209), "rbxassetid://7733964719")
+            return
+        end
+
         isCompactMode = not isCompactMode
         if isCompactMode then
             -- Transition smoothly into Compact Mode
@@ -1354,6 +1274,7 @@ function SairoLibrary.Init()
                     ColumnDivider.Visible = false
                 end
             end)
+            adaptLayout()
             setStatus("Compact mode enabled.", Color3.fromRGB(162, 181, 209), "rbxassetid://7733964719")
         else
             -- Restore Standard Dual-Column Layout
@@ -1372,13 +1293,14 @@ function SairoLibrary.Init()
                 Position = UDim2.new(0, 294, 0, 8),
                 Size = UDim2.new(1, -302, 1, -16)
             }):Play()
+            adaptLayout()
             setStatus("Ready for " .. gameTitle, Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
         end
     end)
 
     -- Entrance Scale Animation
     local targetScale = ShellScale.Scale
-    ShellScale.Scale = 0.78
+    ShellScale.Scale = targetScale * 0.78
     Backdrop.BackgroundTransparency = 1
     TweenService:Create(Backdrop, TweenInfo.new(0.3), {BackgroundTransparency = 0.65}):Play()
     TweenService:Create(ShellScale, TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = targetScale}):Play()
