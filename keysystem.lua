@@ -65,16 +65,21 @@ function SairoLibrary.Init()
     Backdrop.BorderSizePixel = 0
     Backdrop.Parent = ScreenGui
 
-    -- Shell Container with UIScale for responsive sizing
+    -- Shell Container with UIScale for responsive sizing (Smooth Rounded CanvasGroup)
     local Shell = Instance.new("CanvasGroup")
     Shell.Name = "Shell"
     Shell.AnchorPoint = Vector2.new(0.5, 0.5)
     Shell.Position = UDim2.new(0.5, 0, 0.5, 0)
     Shell.Size = UDim2.new(0, 930, 0, 620)
-    Shell.BackgroundColor3 = Color3.fromRGB(16, 27, 45)
+    Shell.BackgroundColor3 = Color3.fromRGB(12, 23, 39)
+    Shell.BackgroundTransparency = 1
     Shell.BorderSizePixel = 0
     Shell.ClipsDescendants = true
     Shell.Parent = Backdrop
+
+    local ShellCorner = Instance.new("UICorner")
+    ShellCorner.CornerRadius = UDim.new(0, 16)
+    ShellCorner.Parent = Shell
 
     local ShellScale = Instance.new("UIScale")
     ShellScale.Scale = 1
@@ -138,7 +143,7 @@ function SairoLibrary.Init()
     UserInfo.Parent = Chrome
 
     -- Header Icon & Title (Using Lucide Spritesheet Crop Offset: 661, 869)
-    local UserInfoIcon = createLucideIcon("rbxassetid://16898613869", 15, Color3.fromRGB(67, 207, 255), UserInfo, Vector2.new(661, 869), Vector2.new(48, 48))
+    local UserInfoIcon = createLucideIcon("rbxassetid://16898613869", 15, Color3.fromRGB(246, 192, 79), UserInfo, Vector2.new(661, 869), Vector2.new(48, 48))
     UserInfoIcon.Position = UDim2.new(0, 20, 0, 19)
 
     local UserInfoLabel = Instance.new("TextLabel")
@@ -146,7 +151,7 @@ function SairoLibrary.Init()
     UserInfoLabel.Position = UDim2.new(0, 43, 0, 14)
     UserInfoLabel.BackgroundTransparency = 1
     UserInfoLabel.Text = "User Info"
-    UserInfoLabel.TextColor3 = Color3.fromRGB(67, 207, 255)
+    UserInfoLabel.TextColor3 = Color3.fromRGB(246, 192, 79)
     UserInfoLabel.Font = Enum.Font.GothamBold
     UserInfoLabel.TextSize = 11
     UserInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -186,14 +191,14 @@ function SairoLibrary.Init()
     local RingStroke = Instance.new("UIStroke")
     RingStroke.Name = "AvatarRingStroke"
     RingStroke.Thickness = 2.5
-    RingStroke.Color = Color3.fromRGB(67, 207, 255)
+    RingStroke.Color = Color3.fromRGB(249, 115, 22)
     RingStroke.Parent = AvatarGradientRing
 
     local RingGrad = Instance.new("UIGradient")
     RingGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(67, 207, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(47, 224, 151)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(67, 207, 255))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 115, 22)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(250, 204, 21))
     })
     RingGrad.Rotation = 45
     RingGrad.Parent = RingStroke
@@ -358,7 +363,7 @@ function SairoLibrary.Init()
     SessionBox.BackgroundTransparency = 1
     SessionBox.Parent = Metrics
 
-    local SessionIcon = createLucideIcon("rbxassetid://7733734848", 16, Color3.fromRGB(67, 207, 255), SessionBox)
+    local SessionIcon = createLucideIcon("rbxassetid://7733734848", 16, Color3.fromRGB(246, 192, 79), SessionBox)
     SessionIcon.Position = UDim2.new(0, 14, 0, 16)
 
     local SessionTitle = Instance.new("TextLabel")
@@ -377,7 +382,7 @@ function SairoLibrary.Init()
     SessionVal.Position = UDim2.new(0, 38, 0, 27)
     SessionVal.BackgroundTransparency = 1
     SessionVal.Text = "00:00"
-    SessionVal.TextColor3 = Color3.fromRGB(67, 207, 255)
+    SessionVal.TextColor3 = Color3.fromRGB(246, 192, 79)
     SessionVal.Font = Enum.Font.GothamBold
     SessionVal.TextSize = 12
     SessionVal.TextXAlignment = Enum.TextXAlignment.Left
@@ -598,7 +603,7 @@ function SairoLibrary.Init()
     SvcTitle.Size = UDim2.new(1, -318, 0, 24)
     SvcTitle.Position = UDim2.new(0, 128, 0, 29)
     SvcTitle.BackgroundTransparency = 1
-    SvcTitle.Text = "Sairo Studios"
+    SvcTitle.Text = "Sairo Scripts"
     SvcTitle.TextColor3 = Color3.fromRGB(239, 245, 255)
     SvcTitle.Font = Enum.Font.GothamBold
     SvcTitle.TextSize = 15
@@ -648,7 +653,7 @@ function SairoLibrary.Init()
     SecAccessTag.Position = UDim2.new(0, 22, 0, 174)
     SecAccessTag.BackgroundTransparency = 1
     SecAccessTag.Text = "SECURE ACCESS"
-    SecAccessTag.TextColor3 = Color3.fromRGB(67, 207, 255)
+    SecAccessTag.TextColor3 = Color3.fromRGB(249, 115, 22)
     SecAccessTag.Font = Enum.Font.GothamBold
     SecAccessTag.TextSize = 9
     SecAccessTag.TextXAlignment = Enum.TextXAlignment.Left
@@ -665,7 +670,7 @@ function SairoLibrary.Init()
     SecAccessDesc.TextXAlignment = Enum.TextXAlignment.Left
     SecAccessDesc.Parent = Main
 
-    -- Key Input Box with Rotating Dual-Light Beam Border
+    -- Key Input Box with Rotating Dual-Light Beam Border (Sun Yellow & Flame Orange, No Blue)
     local KeyInputWrap = Instance.new("Frame")
     KeyInputWrap.Name = "KeyInputWrap"
     KeyInputWrap.Size = UDim2.new(1, -40, 0, 50)
@@ -686,11 +691,11 @@ function SairoLibrary.Init()
 
     local DualLightGrad = Instance.new("UIGradient")
     DualLightGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 48, 76)),
-        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(67, 207, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 48, 76)),
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 42, 60)),
+        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(250, 204, 21)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 42, 60)),
         ColorSequenceKeypoint.new(0.75, Color3.fromRGB(249, 115, 22)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 48, 76))
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 42, 60))
     })
     DualLightGrad.Rotation = 0
     DualLightGrad.Parent = KeyInputStroke
@@ -733,6 +738,62 @@ function SairoLibrary.Init()
             end
         end
     end)
+
+    -- Pop Animation Engine (Tactile Press-Down & Spring Pop for All Buttons)
+    local function applyButtonPop(btn)
+        local scale = btn:FindFirstChildOfClass("UIScale")
+        if not scale then
+            scale = Instance.new("UIScale")
+            scale.Scale = 1
+            scale.Parent = btn
+        end
+
+        local isDown = false
+
+        local function doPress()
+            isDown = true
+            TweenService:Create(scale, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Scale = 0.92
+            }):Play()
+        end
+
+        local function doRelease()
+            if isDown then
+                isDown = false
+                local tPop = TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                    Scale = 1.05
+                })
+                tPop:Play()
+                tPop.Completed:Connect(function()
+                    if not isDown then
+                        TweenService:Create(scale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                            Scale = 1.0
+                        }):Play()
+                    end
+                end)
+            end
+        end
+
+        btn.MouseButton1Down:Connect(doPress)
+        btn.MouseButton1Up:Connect(doRelease)
+        btn.MouseButton1Click:Connect(function()
+            if isDown then
+                doRelease()
+            end
+        end)
+        btn.MouseLeave:Connect(function()
+            if isDown then
+                isDown = false
+                TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Scale = 1.0
+                }):Play()
+            end
+        end)
+    end
+
+    -- Hook up Pop Animation on Header Buttons
+    applyButtonPop(MinBtn)
+    applyButtonPop(CloseBtn)
 
     -- Helper: Button Builder using Centered ButtonContent Engine
     local function createStandardButton(name, widthScale, widthOffset, bgColor, iconAsset, labelText, parent, textSize, rectOffset, rectSize)
@@ -786,6 +847,8 @@ function SairoLibrary.Init()
             TweenService:Create(btn, TweenInfo.new(0.18), {BackgroundTransparency = 0}):Play()
         end)
 
+        applyButtonPop(btn)
+
         return btn, lbl, ic
     end
 
@@ -802,10 +865,10 @@ function SairoLibrary.Init()
     PrimaryLayout.Padding = UDim.new(0, 10)
     PrimaryLayout.Parent = PrimaryRow
 
-    local GetKeyBtn = createStandardButton("GetKey", 0.5, -5, Color3.fromRGB(26, 164, 235), "rbxassetid://7733965118", "Get Key", PrimaryRow, 13)
+    local GetKeyBtn = createStandardButton("GetKey", 0.5, -5, Color3.fromRGB(249, 115, 22), "rbxassetid://7733965118", "Get Key", PrimaryRow, 13)
     local RedeemBtn, RedeemLbl = createStandardButton("Redeem", 0.5, -5, Color3.fromRGB(27, 45, 72), "rbxassetid://7734056411", "Redeem", PrimaryRow, 13)
 
-    -- Utility Row (Discord, CopyHWID, Settings)
+    -- Utility Row (Discord, CopyHWID, Live Support)
     local UtilRow = Instance.new("Frame")
     UtilRow.Size = UDim2.new(1, -40, 0, 38)
     UtilRow.Position = UDim2.new(0, 20, 0, 334)
@@ -820,7 +883,7 @@ function SairoLibrary.Init()
 
     local DiscordBtn = createStandardButton("Discord", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733993311", "Discord", UtilRow, 11)
     local CopyHwidBtn = createStandardButton("CopyHWID", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733764083", "Copy HWID", UtilRow, 11)
-    local SettingsBtn = createStandardButton("Settings", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://16898613777", "Settings", UtilRow, 11, Vector2.new(771, 257), Vector2.new(48, 48))
+    local LiveSupportBtn = createStandardButton("LiveSupport", 0.333, -7, Color3.fromRGB(23, 36, 59), "rbxassetid://7733964719", "Live Support", UtilRow, 10)
 
     -- Status Card Frame
     local StatusCard = Instance.new("Frame")
@@ -834,7 +897,7 @@ function SairoLibrary.Init()
     local StatusAccentLine = Instance.new("Frame")
     StatusAccentLine.Size = UDim2.new(0, 3, 1, -16)
     StatusAccentLine.Position = UDim2.new(0, 0, 0, 8)
-    StatusAccentLine.BackgroundColor3 = Color3.fromRGB(67, 207, 255)
+    StatusAccentLine.BackgroundColor3 = Color3.fromRGB(246, 192, 79)
     StatusAccentLine.BorderSizePixel = 0
     StatusAccentLine.Parent = StatusCard
 
@@ -842,7 +905,7 @@ function SairoLibrary.Init()
     StatusLineCorner.CornerRadius = UDim.new(0, 2)
     StatusLineCorner.Parent = StatusAccentLine
 
-    local StatusIcon = createLucideIcon("rbxassetid://7733964719", 16, Color3.fromRGB(67, 207, 255), StatusCard)
+    local StatusIcon = createLucideIcon("rbxassetid://7733964719", 16, Color3.fromRGB(246, 192, 79), StatusCard)
     StatusIcon.Position = UDim2.new(0, 16, 0, 15)
 
     local StatusSummary = Instance.new("TextLabel")
@@ -851,7 +914,7 @@ function SairoLibrary.Init()
     StatusSummary.Position = UDim2.new(0, 42, 0, 13)
     StatusSummary.BackgroundTransparency = 1
     StatusSummary.Text = "Ready for " .. gameTitle
-    StatusSummary.TextColor3 = Color3.fromRGB(67, 207, 255)
+    StatusSummary.TextColor3 = Color3.fromRGB(246, 192, 79)
     StatusSummary.Font = Enum.Font.GothamBold
     StatusSummary.TextSize = 11
     StatusSummary.TextXAlignment = Enum.TextXAlignment.Left
@@ -887,10 +950,10 @@ function SairoLibrary.Init()
     -- Status Setter helper with Icon flipping
     local function setStatus(text, color, iconAsset, detailText)
         StatusSummary.Text = text
-        StatusSummary.TextColor3 = color or Color3.fromRGB(67, 207, 255)
-        StatusAccentLine.BackgroundColor3 = color or Color3.fromRGB(67, 207, 255)
+        StatusSummary.TextColor3 = color or Color3.fromRGB(246, 192, 79)
+        StatusAccentLine.BackgroundColor3 = color or Color3.fromRGB(246, 192, 79)
         StatusIcon.Image = iconAsset or "rbxassetid://7733964719"
-        StatusIcon.ImageColor3 = color or Color3.fromRGB(67, 207, 255)
+        StatusIcon.ImageColor3 = color or Color3.fromRGB(246, 192, 79)
 
         if detailText and detailText ~= "" then
             lastErrorText = detailText
@@ -1136,7 +1199,7 @@ function SairoLibrary.Init()
             TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 294, 0, 8)
             }):Play()
-            setStatus("Ready for " .. gameTitle, Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
+            setStatus("Ready for " .. gameTitle, Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
         end
     end)
 
@@ -1164,7 +1227,11 @@ function SairoLibrary.Init()
         end
     end)
 
-    SettingsBtn.MouseButton1Click:Connect(function()
+    LiveSupportBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard("https://dsc.gg/sairo")
+            setStatus("Support link copied to clipboard.", Color3.fromRGB(47, 224, 151), "rbxassetid://7733919427")
+        end
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/wendigo5414-cmyk/FireballxArena/refs/heads/main/feedbacksystem"))()
         end)
@@ -1174,7 +1241,7 @@ function SairoLibrary.Init()
     -- 7. API & AUTHENTICATION LOGIC
     -- =========================================================================
     local function getKey()
-        setStatus("Generating Key link...", Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
+        setStatus("Generating Key link...", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
         local robloxName = LocalPlayer.Name
         local url = API_URL .. "/api/init"
         local body = HttpService:JSONEncode({hwid = HWID, robloxName = robloxName, devId = DEV_ID})
@@ -1209,7 +1276,7 @@ function SairoLibrary.Init()
         end
 
         RedeemLbl.Text = "Checking..."
-        setStatus("Authenticating with Sairo gateway...", Color3.fromRGB(67, 207, 255), "rbxassetid://7733964719")
+        setStatus("Authenticating with Sairo gateway...", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
 
         local robloxName = LocalPlayer.Name
         local url = API_URL .. "/api/verify-key?key=" .. inputKey .. "&hwid=" .. HWID .. "&robloxName=" .. robloxName
