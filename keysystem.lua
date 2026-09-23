@@ -114,7 +114,7 @@ function SairoLibrary.Init()
     LoadingCard.Name = "LoadingCard"
     LoadingCard.AnchorPoint = Vector2.new(0.5, 0.5)
     LoadingCard.Position = UDim2.new(0.5, 0, 0.5, 0)
-    LoadingCard.Size = UDim2.new(0, 390, 0, 164)
+    LoadingCard.Size = UDim2.new(0, 410, 0, 172)
     LoadingCard.BackgroundColor3 = Color3.fromRGB(12, 23, 39)
     LoadingCard.BorderSizePixel = 0
     LoadingCard.ClipsDescendants = true
@@ -124,24 +124,36 @@ function SairoLibrary.Init()
     LoadingCorner.CornerRadius = UDim.new(0, 16)
     LoadingCorner.Parent = LoadingCard
 
+    local LoadingScale = Instance.new("UIScale")
+    LoadingScale.Scale = 0.72
+    LoadingScale.Parent = LoadingCard
+    -- Entrance Pop-In Animation
+    TweenService:Create(LoadingScale, TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.0}):Play()
+
+    -- Animated Luxury Cyber-Glow Stroke (Replaces static orange stroke)
     local LoadingStroke = Instance.new("UIStroke")
-    LoadingStroke.Color = Color3.fromRGB(249, 115, 22)
-    LoadingStroke.Thickness = 1.2
+    LoadingStroke.Color = Color3.fromRGB(255, 255, 255)
+    LoadingStroke.Thickness = 1.8
+    LoadingStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     LoadingStroke.Parent = LoadingCard
 
     local LoadingStrokeGrad = Instance.new("UIGradient")
     LoadingStrokeGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 115, 22)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(246, 192, 79))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 38, 58)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(250, 204, 21)), -- Sun Yellow
+        ColorSequenceKeypoint.new(0.35, Color3.fromRGB(249, 115, 22)), -- Flame Orange
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(24, 38, 58)),
+        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(168, 85, 247)), -- Violet
+        ColorSequenceKeypoint.new(0.85, Color3.fromRGB(56, 189, 248)), -- Cyan
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 38, 58))
     })
-    LoadingStrokeGrad.Rotation = 45
+    LoadingStrokeGrad.Rotation = 0
     LoadingStrokeGrad.Parent = LoadingStroke
 
     local LoadingIcon = Instance.new("ImageLabel")
     LoadingIcon.Name = "LoadingIcon"
     LoadingIcon.Size = UDim2.new(0, 32, 0, 32)
-    LoadingIcon.Position = UDim2.new(0, 22, 0, 24)
+    LoadingIcon.Position = UDim2.new(0, 22, 0, 22)
     LoadingIcon.BackgroundTransparency = 1
     LoadingIcon.Image = "rbxassetid://7733919427" -- Shield check
     LoadingIcon.ImageColor3 = Color3.fromRGB(250, 204, 21)
@@ -149,8 +161,8 @@ function SairoLibrary.Init()
 
     local LoadingTitle = Instance.new("TextLabel")
     LoadingTitle.Name = "LoadingTitle"
-    LoadingTitle.Size = UDim2.new(1, -76, 0, 20)
-    LoadingTitle.Position = UDim2.new(0, 64, 0, 22)
+    LoadingTitle.Size = UDim2.new(1, -145, 0, 20)
+    LoadingTitle.Position = UDim2.new(0, 64, 0, 20)
     LoadingTitle.BackgroundTransparency = 1
     LoadingTitle.Font = Enum.Font.GothamBlack
     LoadingTitle.Text = "SAIRO SECURITY GATEWAY"
@@ -158,6 +170,18 @@ function SairoLibrary.Init()
     LoadingTitle.TextSize = 13
     LoadingTitle.TextXAlignment = Enum.TextXAlignment.Left
     LoadingTitle.Parent = LoadingCard
+
+    local LoadingPct = Instance.new("TextLabel")
+    LoadingPct.Name = "LoadingPct"
+    LoadingPct.Size = UDim2.new(0, 65, 0, 20)
+    LoadingPct.Position = UDim2.new(1, -87, 0, 20)
+    LoadingPct.BackgroundTransparency = 1
+    LoadingPct.Font = Enum.Font.GothamBold
+    LoadingPct.Text = "0%"
+    LoadingPct.TextColor3 = Color3.fromRGB(246, 192, 79)
+    LoadingPct.TextSize = 13
+    LoadingPct.TextXAlignment = Enum.TextXAlignment.Right
+    LoadingPct.Parent = LoadingCard
 
     local LoadingStatus = Instance.new("TextLabel")
     LoadingStatus.Name = "LoadingStatus"
@@ -171,23 +195,31 @@ function SairoLibrary.Init()
     LoadingStatus.TextXAlignment = Enum.TextXAlignment.Left
     LoadingStatus.Parent = LoadingCard
 
+    -- Double Thickness Progress Bar Track (Height 16px)
     local ProgressTrack = Instance.new("Frame")
     ProgressTrack.Name = "ProgressTrack"
-    ProgressTrack.Size = UDim2.new(1, -44, 0, 8)
-    ProgressTrack.Position = UDim2.new(0, 22, 0, 82)
-    ProgressTrack.BackgroundColor3 = Color3.fromRGB(4, 12, 23)
+    ProgressTrack.Size = UDim2.new(1, -44, 0, 16)
+    ProgressTrack.Position = UDim2.new(0, 22, 0, 78)
+    ProgressTrack.BackgroundColor3 = Color3.fromRGB(6, 14, 25)
     ProgressTrack.BorderSizePixel = 0
+    ProgressTrack.ClipsDescendants = true
     ProgressTrack.Parent = LoadingCard
 
     local ProgressCorner = Instance.new("UICorner")
     ProgressCorner.CornerRadius = UDim.new(1, 0)
     ProgressCorner.Parent = ProgressTrack
 
+    local ProgressTrackStroke = Instance.new("UIStroke")
+    ProgressTrackStroke.Color = Color3.fromRGB(30, 48, 76)
+    ProgressTrackStroke.Thickness = 1
+    ProgressTrackStroke.Parent = ProgressTrack
+
+    -- Rainbow RGB Glowing Progress Fill
     local ProgressBar = Instance.new("Frame")
     ProgressBar.Name = "ProgressBar"
-    ProgressBar.Size = UDim2.new(0.25, 0, 1, 0)
+    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
     ProgressBar.Position = UDim2.new(0, 0, 0, 0)
-    ProgressBar.BackgroundColor3 = Color3.fromRGB(249, 115, 22)
+    ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     ProgressBar.BorderSizePixel = 0
     ProgressBar.Parent = ProgressTrack
 
@@ -195,17 +227,33 @@ function SairoLibrary.Init()
     BarCorner.CornerRadius = UDim.new(1, 0)
     BarCorner.Parent = ProgressBar
 
+    -- Glowing Rainbow Gradient
     local BarGrad = Instance.new("UIGradient")
     BarGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(249, 115, 22))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 65, 84)),    -- Crimson Red
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 140, 0)), -- Orange
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 225, 0)), -- Sun Gold
+        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 245, 150)),  -- Emerald Green
+        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 210, 255)),  -- Sky Cyan
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(185, 75, 255)), -- Electric Violet
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 65, 84))     -- Red Loop
     })
     BarGrad.Parent = ProgressBar
+
+    -- Glossy Shine Glass Overlay on Progress Track
+    local ProgressShine = Instance.new("Frame")
+    ProgressShine.Name = "ProgressShine"
+    ProgressShine.Size = UDim2.new(1, 0, 0.45, 0)
+    ProgressShine.Position = UDim2.new(0, 0, 0, 0)
+    ProgressShine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ProgressShine.BackgroundTransparency = 0.88
+    ProgressShine.BorderSizePixel = 0
+    ProgressShine.Parent = ProgressTrack
 
     local LoadingSubtext = Instance.new("TextLabel")
     LoadingSubtext.Name = "LoadingSubtext"
     LoadingSubtext.Size = UDim2.new(1, -44, 0, 36)
-    LoadingSubtext.Position = UDim2.new(0, 22, 0, 106)
+    LoadingSubtext.Position = UDim2.new(0, 22, 0, 108)
     LoadingSubtext.BackgroundTransparency = 1
     LoadingSubtext.Font = Enum.Font.GothamMedium
     LoadingSubtext.Text = "Verifying multi-layer shield & game credentials..."
@@ -214,6 +262,23 @@ function SairoLibrary.Init()
     LoadingSubtext.TextWrapped = true
     LoadingSubtext.TextXAlignment = Enum.TextXAlignment.Left
     LoadingSubtext.Parent = LoadingCard
+
+    -- Dynamic Animation Loop for LoadingCard (Rainbow Flow + Rotating Stroke)
+    local loadingConn
+    local rgbOffset = 0
+    loadingConn = RunService.RenderStepped:Connect(function(dt)
+        if not LoadingCard or not LoadingCard.Parent or not ScreenGui.Parent then
+            if loadingConn then loadingConn:Disconnect() end
+            return
+        end
+        if LoadingStrokeGrad and LoadingStrokeGrad.Parent then
+            LoadingStrokeGrad.Rotation = (LoadingStrokeGrad.Rotation + (140 * dt)) % 360
+        end
+        if BarGrad and BarGrad.Parent then
+            rgbOffset = (rgbOffset + (0.75 * dt)) % 1
+            BarGrad.Offset = Vector2.new(-rgbOffset, 0)
+        end
+    end)
 
     -- Chrome Frame
     local Chrome = Instance.new("Frame")
@@ -1424,12 +1489,9 @@ function SairoLibrary.Init()
         end
     end)
 
-    -- Entrance Scale Animation
-    local targetScale = ShellScale.Scale
-    ShellScale.Scale = targetScale * 0.78
+    -- Entrance Ambient Backdrop Animation
     Backdrop.BackgroundTransparency = 1
     TweenService:Create(Backdrop, TweenInfo.new(0.3), {BackgroundTransparency = 0.65}):Play()
-    TweenService:Create(ShellScale, TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = targetScale}):Play()
 
     -- =========================================================================
     -- 7. BUTTON ACTIONS
@@ -1647,10 +1709,27 @@ function SairoLibrary.Init()
         local gameId = tostring(_G.TargetGameId or game.GameId or 0)
         local robloxName = LocalPlayer.Name
 
-        -- Step 1: Connecting to Sairo Gateway
-        LoadingStatus.Text = "Connecting to Sairo Gateway..."
-        TweenService:Create(ProgressBar, TweenInfo.new(0.35), {Size = UDim2.new(0.4, 0, 1, 0)}):Play()
+        local currentProgressPct = 0
+        local function advanceProgress(targetPct, stepDelay)
+            stepDelay = stepDelay or 0.1
+            targetPct = math.clamp(targetPct, 0, 100)
+            while currentProgressPct < targetPct do
+                currentProgressPct = math.min(currentProgressPct + 10, targetPct)
+                LoadingPct.Text = tostring(math.floor(currentProgressPct)) .. "%"
+                local frac = currentProgressPct / 100
+                TweenService:Create(ProgressBar, TweenInfo.new(stepDelay * 0.92, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(frac, 0, 1, 0)
+                }):Play()
+                task.wait(stepDelay)
+            end
+        end
 
+        -- Step 1: Connecting to Sairo Gateway (0% -> 40% with 0.1s delay per 10%)
+        LoadingStatus.Text = "Connecting to Sairo Gateway..."
+        LoadingSubtext.Text = "Establishing encrypted SSL handshake..."
+        advanceProgress(40, 0.1)
+
+        -- Check saved key in SairoAuth.txt
         local savedKey = ""
         if readfile and pcall(function() return readfile("SairoAuth.txt") end) then
             savedKey = (readfile("SairoAuth.txt") or ""):gsub("%s+", "")
@@ -1659,92 +1738,109 @@ function SairoLibrary.Init()
             end
         end
 
-        task.wait(0.2)
-        -- Step 2: Resolving license & free trials for this game
+        -- Step 2: Resolving license & free trials (40% -> 70% with 0.1s delay per 10%)
         LoadingStatus.Text = "Resolving game license & free trials..."
-        TweenService:Create(ProgressBar, TweenInfo.new(0.35), {Size = UDim2.new(0.8, 0, 1, 0)}):Play()
+        LoadingSubtext.Text = "Verifying place ID " .. placeId .. " credentials..."
 
-        local checkUrl = API_URL .. "/api/runscript/auth-check?placeId=" .. placeId .. "&gameId=" .. gameId .. "&hwid=" .. HWID .. "&username=" .. robloxName .. "&key=" .. savedKey
-        local reqSuccess, checkResponse = pcall(function()
-            return game:HttpGet(checkUrl)
-        end)
-
-        if reqSuccess and checkResponse then
-            local decOk, authData = pcall(function() return HttpService:JSONDecode(checkResponse) end)
-            if decOk and authData then
-                if authData.verified == true then
-                    -- VERIFIED VIA FREE TRIAL OR SAVED LICENSE KEY
-                    if authData.isTrial then
-                        LoadingStatus.Text = "🎁 " .. tostring(authData.hoursLeft or authData.freeHours or 24) .. "h Free Access Active!"
-                        LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
-                        LoadingSubtext.Text = "Free trial granted for this game. Launching script..."
-                    else
-                        LoadingStatus.Text = "License Verified! Launching script..."
-                        LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
-                        LoadingSubtext.Text = "Sairo authorization active. Enjoy your script!"
-                    end
-
-                    LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
-                    ProgressBar.BackgroundColor3 = Color3.fromRGB(47, 224, 151)
-                    BarGrad.Color = ColorSequence.new({
-                        ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 224, 151)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 185, 129))
-                    })
-                    TweenService:Create(ProgressBar, TweenInfo.new(0.25), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-
-                    task.wait(0.5)
-                    local tDismiss = TweenService:Create(LoadingCard, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 330, 0, 140)
-                    })
-                    tDismiss:Play()
-                    tDismiss.Completed:Connect(function()
-                        ScreenGui:Destroy()
-                    end)
-
-                    isVerified = true
-                    SairoLibrary._isVerified = true
-                    SairoLibrary._active = false
-
-                    -- Only execute server payload if running in Universal Runscript Mode!
-                    -- For normal/old scripts importing keysystem.lua, the script itself continues execution after Init()
-                    if _G.SairoRunScriptMode and authData.scriptPayload and #authData.scriptPayload > 0 then
-                        local execFn, loadErr = loadstring(authData.scriptPayload)
-                        if execFn then
-                            task.spawn(execFn)
-                        else
-                            warn("[Sairo] Error running payload: " .. tostring(loadErr))
-                        end
-                    end
-                    return
-                else
-                    -- NOT VERIFIED: License key required
-                    if authData.trialExpired then
-                        setStatus("Free trial expired for this game. Enter key.", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
-                    end
-
-                    TweenService:Create(ProgressBar, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-                    task.wait(0.2)
-
-                    local tFadeLoad = TweenService:Create(LoadingCard, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 330, 0, 140)
-                    })
-                    tFadeLoad:Play()
-                    tFadeLoad.Completed:Connect(function()
-                        LoadingCard:Destroy()
-                        Shell.Visible = true
-                        TweenService:Create(ShellScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
-                    end)
-                    return
+        local authData = nil
+        local netDone = false
+        task.spawn(function()
+            local checkUrl = API_URL .. "/api/runscript/auth-check?placeId=" .. placeId .. "&gameId=" .. gameId .. "&hwid=" .. HWID .. "&username=" .. robloxName .. "&key=" .. savedKey
+            local reqSuccess, checkResponse = pcall(function()
+                return game:HttpGet(checkUrl)
+            end)
+            if reqSuccess and checkResponse then
+                local decOk, parsed = pcall(function() return HttpService:JSONDecode(checkResponse) end)
+                if decOk and parsed then
+                    authData = parsed
                 end
             end
+            netDone = true
+        end)
+
+        advanceProgress(70, 0.1)
+
+        -- Await response if network is taking a moment, then complete to 100%
+        local waitBudget = 0
+        while not netDone and waitBudget < 3.0 do
+            task.wait(0.05)
+            waitBudget = waitBudget + 0.05
         end
 
-        -- Fallback if server connection fails or response unparseable
-        LoadingCard:Destroy()
-        Shell.Visible = true
-        TweenService:Create(ShellScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+        -- Step 3: Advance smoothly to 100% (70% -> 100% with 0.1s per 10%)
+        advanceProgress(100, 0.1)
+        LoadingPct.Text = "100%"
+
+        -- Now execute transition based on auth result
+        if authData and authData.verified == true then
+            -- VERIFIED VIA FREE TRIAL OR SAVED LICENSE KEY
+            if authData.isTrial then
+                LoadingStatus.Text = "🎁 " .. tostring(authData.hoursLeft or authData.freeHours or 24) .. "h Free Access Active!"
+                LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                LoadingSubtext.Text = "Free trial granted for this game. Enjoy!"
+            else
+                LoadingStatus.Text = "License Verified! Access Granted"
+                LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                LoadingSubtext.Text = "Sairo authorization active. Welcome back!"
+            end
+            LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+
+            task.wait(0.35)
+            -- Pop-in shrink dismissal
+            local tDismiss = TweenService:Create(LoadingScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Scale = 0.45
+            })
+            TweenService:Create(LoadingCard, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(Backdrop, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
+            tDismiss:Play()
+            tDismiss.Completed:Connect(function()
+                ScreenGui:Destroy()
+            end)
+
+            isVerified = true
+            SairoLibrary._isVerified = true
+            SairoLibrary._active = false
+
+            -- Only execute server payload if running in Universal Runscript Mode!
+            if _G.SairoRunScriptMode and authData.scriptPayload and #authData.scriptPayload > 0 then
+                local execFn, loadErr = loadstring(authData.scriptPayload)
+                if execFn then
+                    task.spawn(execFn)
+                else
+                    warn("[Sairo] Error running payload: " .. tostring(loadErr))
+                end
+            end
+            return
+        else
+            -- NOT VERIFIED: License key required
+            LoadingStatus.Text = "Authentication Required"
+            LoadingStatus.TextColor3 = Color3.fromRGB(246, 192, 79)
+            LoadingSubtext.Text = "Launching Sairo Key System interface..."
+
+            if authData and authData.trialExpired then
+                setStatus("Free trial expired for this game. Enter key.", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
+            end
+
+            task.wait(0.2)
+
+            -- 1. Pop-In: LoadingCard pops in (shrinks inward into center)
+            local popInTween = TweenService:Create(LoadingScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Scale = 0.45
+            })
+            TweenService:Create(LoadingCard, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+            popInTween:Play()
+            task.wait(0.2)
+            LoadingCard:Destroy()
+
+            -- 2. Pop-Out: Shell immediately pops out from center with luxury spring bounce
+            Shell.Visible = true
+            local finalFitScale = ShellScale.Scale
+            ShellScale.Scale = finalFitScale * 0.72
+            TweenService:Create(ShellScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Scale = finalFitScale
+            }):Play()
+            return
+        end
     end)
 
     repeat task.wait(0.2) until isVerified
