@@ -13,9 +13,20 @@
     - Verified Service Asset: rbxassetid://97736695351156
 ]]
 
-local SairoLibrary = {}
+local SairoLibrary = {
+    _active = false,
+    _isVerified = false
+}
 
 function SairoLibrary.Init()
+    -- Singleton Guard: If an instance is already active, wait for it instead of spawning a duplicate GUI!
+    if SairoLibrary._active then
+        repeat task.wait(0.2) until SairoLibrary._isVerified
+        return SairoLibrary
+    end
+    SairoLibrary._active = true
+    SairoLibrary._isVerified = false
+
     local isVerified = false
 
     local TweenService = game:GetService("TweenService")
@@ -52,12 +63,20 @@ function SairoLibrary.Init()
         return LocalPlayer:WaitForChild("PlayerGui")
     end
 
+    local guiParent = getGuiParent()
+    -- Destroy any previous or duplicate ScreenGui instances cleanly
+    for _, child in ipairs(guiParent:GetChildren()) do
+        if child.Name == "SairoFlowAuthLoader" then
+            pcall(function() child:Destroy() end)
+        end
+    end
+
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "SairoFlowAuthLoader"
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = getGuiParent()
+    ScreenGui.Parent = guiParent
 
     -- Dark Ambient Backdrop
     local Backdrop = Instance.new("Frame")
@@ -1572,7 +1591,11 @@ function SairoLibrary.Init()
                 task.wait(0.6)
                 closeWithAnimation(function()
                     isVerified = true
-                    if data.scriptPayload and #data.scriptPayload > 0 then
+                    SairoLibrary._isVerified = true
+                    SairoLibrary._active = false
+                    -- Only execute server payload if running in Universal Runscript Mode!
+                    -- For normal/old scripts importing keysystem.lua, the script itself continues execution after Init()
+                    if _G.SairoRunScriptMode and data.scriptPayload and #data.scriptPayload > 0 then
                         local execFn, loadErr = loadstring(data.scriptPayload)
                         if execFn then
                             task.spawn(execFn)
@@ -1680,7 +1703,12 @@ function SairoLibrary.Init()
                     end)
 
                     isVerified = true
-                    if authData.scriptPayload and #authData.scriptPayload > 0 then
+                    SairoLibrary._isVerified = true
+                    SairoLibrary._active = false
+
+                    -- Only execute server payload if running in Universal Runscript Mode!
+                    -- For normal/old scripts importing keysystem.lua, the script itself continues execution after Init()
+                    if _G.SairoRunScriptMode and authData.scriptPayload and #authData.scriptPayload > 0 then
                         local execFn, loadErr = loadstring(authData.scriptPayload)
                         if execFn then
                             task.spawn(execFn)
@@ -1720,9 +1748,14 @@ function SairoLibrary.Init()
     end)
 
     repeat task.wait(0.2) until isVerified
+    SairoLibrary._isVerified = true
+    SairoLibrary._active = false
+    return SairoLibrary
 end
 
-if not _G.SairoLibraryNoAutoInit then
+-- ONLY auto-initialize if explicitly running in Universal /runscript Mode!
+-- Old scripts and custom scripts do: loadstring(game:HttpGet(".../keysystem.lua"))().Init()
+if _G.SairoRunScriptMode then
     task.spawn(function()
         SairoLibrary.Init()
     end)
