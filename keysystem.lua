@@ -79,6 +79,7 @@ function SairoLibrary.Init()
     Shell.BackgroundTransparency = 1
     Shell.BorderSizePixel = 0
     Shell.ClipsDescendants = true
+    Shell.Visible = false -- Pre-rendered in background, becomes visible only if key is required
     Shell.Parent = Backdrop
 
     local ShellCorner = Instance.new("UICorner")
@@ -86,8 +87,114 @@ function SairoLibrary.Init()
     ShellCorner.Parent = Shell
 
     local ShellScale = Instance.new("UIScale")
-    ShellScale.Scale = 1
+    ShellScale.Scale = 0.92
     ShellScale.Parent = Shell
+
+    -- Premium Centered Loading Card (Shows while server connects & license verifies)
+    local LoadingCard = Instance.new("Frame")
+    LoadingCard.Name = "LoadingCard"
+    LoadingCard.AnchorPoint = Vector2.new(0.5, 0.5)
+    LoadingCard.Position = UDim2.new(0.5, 0, 0.5, 0)
+    LoadingCard.Size = UDim2.new(0, 390, 0, 164)
+    LoadingCard.BackgroundColor3 = Color3.fromRGB(12, 23, 39)
+    LoadingCard.BorderSizePixel = 0
+    LoadingCard.ClipsDescendants = true
+    LoadingCard.Parent = Backdrop
+
+    local LoadingCorner = Instance.new("UICorner")
+    LoadingCorner.CornerRadius = UDim.new(0, 16)
+    LoadingCorner.Parent = LoadingCard
+
+    local LoadingStroke = Instance.new("UIStroke")
+    LoadingStroke.Color = Color3.fromRGB(249, 115, 22)
+    LoadingStroke.Thickness = 1.2
+    LoadingStroke.Parent = LoadingCard
+
+    local LoadingStrokeGrad = Instance.new("UIGradient")
+    LoadingStrokeGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 115, 22)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(246, 192, 79))
+    })
+    LoadingStrokeGrad.Rotation = 45
+    LoadingStrokeGrad.Parent = LoadingStroke
+
+    local LoadingIcon = Instance.new("ImageLabel")
+    LoadingIcon.Name = "LoadingIcon"
+    LoadingIcon.Size = UDim2.new(0, 32, 0, 32)
+    LoadingIcon.Position = UDim2.new(0, 22, 0, 24)
+    LoadingIcon.BackgroundTransparency = 1
+    LoadingIcon.Image = "rbxassetid://7733919427" -- Shield check
+    LoadingIcon.ImageColor3 = Color3.fromRGB(250, 204, 21)
+    LoadingIcon.Parent = LoadingCard
+
+    local LoadingTitle = Instance.new("TextLabel")
+    LoadingTitle.Name = "LoadingTitle"
+    LoadingTitle.Size = UDim2.new(1, -76, 0, 20)
+    LoadingTitle.Position = UDim2.new(0, 64, 0, 22)
+    LoadingTitle.BackgroundTransparency = 1
+    LoadingTitle.Font = Enum.Font.GothamBlack
+    LoadingTitle.Text = "SAIRO SECURITY GATEWAY"
+    LoadingTitle.TextColor3 = Color3.fromRGB(239, 245, 255)
+    LoadingTitle.TextSize = 13
+    LoadingTitle.TextXAlignment = Enum.TextXAlignment.Left
+    LoadingTitle.Parent = LoadingCard
+
+    local LoadingStatus = Instance.new("TextLabel")
+    LoadingStatus.Name = "LoadingStatus"
+    LoadingStatus.Size = UDim2.new(1, -76, 0, 18)
+    LoadingStatus.Position = UDim2.new(0, 64, 0, 42)
+    LoadingStatus.BackgroundTransparency = 1
+    LoadingStatus.Font = Enum.Font.GothamBold
+    LoadingStatus.Text = "Connecting to Sairo Security Gateway..."
+    LoadingStatus.TextColor3 = Color3.fromRGB(162, 181, 209)
+    LoadingStatus.TextSize = 11
+    LoadingStatus.TextXAlignment = Enum.TextXAlignment.Left
+    LoadingStatus.Parent = LoadingCard
+
+    local ProgressTrack = Instance.new("Frame")
+    ProgressTrack.Name = "ProgressTrack"
+    ProgressTrack.Size = UDim2.new(1, -44, 0, 8)
+    ProgressTrack.Position = UDim2.new(0, 22, 0, 82)
+    ProgressTrack.BackgroundColor3 = Color3.fromRGB(4, 12, 23)
+    ProgressTrack.BorderSizePixel = 0
+    ProgressTrack.Parent = LoadingCard
+
+    local ProgressCorner = Instance.new("UICorner")
+    ProgressCorner.CornerRadius = UDim.new(1, 0)
+    ProgressCorner.Parent = ProgressTrack
+
+    local ProgressBar = Instance.new("Frame")
+    ProgressBar.Name = "ProgressBar"
+    ProgressBar.Size = UDim2.new(0.25, 0, 1, 0)
+    ProgressBar.Position = UDim2.new(0, 0, 0, 0)
+    ProgressBar.BackgroundColor3 = Color3.fromRGB(249, 115, 22)
+    ProgressBar.BorderSizePixel = 0
+    ProgressBar.Parent = ProgressTrack
+
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(1, 0)
+    BarCorner.Parent = ProgressBar
+
+    local BarGrad = Instance.new("UIGradient")
+    BarGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 204, 21)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(249, 115, 22))
+    })
+    BarGrad.Parent = ProgressBar
+
+    local LoadingSubtext = Instance.new("TextLabel")
+    LoadingSubtext.Name = "LoadingSubtext"
+    LoadingSubtext.Size = UDim2.new(1, -44, 0, 36)
+    LoadingSubtext.Position = UDim2.new(0, 22, 0, 106)
+    LoadingSubtext.BackgroundTransparency = 1
+    LoadingSubtext.Font = Enum.Font.GothamMedium
+    LoadingSubtext.Text = "Verifying multi-layer shield & game credentials..."
+    LoadingSubtext.TextColor3 = Color3.fromRGB(108, 132, 163)
+    LoadingSubtext.TextSize = 10
+    LoadingSubtext.TextWrapped = true
+    LoadingSubtext.TextXAlignment = Enum.TextXAlignment.Left
+    LoadingSubtext.Parent = LoadingCard
 
     -- Chrome Frame
     local Chrome = Instance.new("Frame")
@@ -1448,7 +1555,9 @@ function SairoLibrary.Init()
         setStatus("Authenticating with Sairo gateway...", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
 
         local robloxName = LocalPlayer.Name
-        local url = API_URL .. "/api/verify-key?key=" .. inputKey .. "&hwid=" .. HWID .. "&robloxName=" .. robloxName
+        local placeId = tostring(game.PlaceId or 0)
+        local gameId = tostring(_G.TargetGameId or game.GameId or 0)
+        local url = API_URL .. "/api/verify-key?key=" .. inputKey .. "&hwid=" .. HWID .. "&robloxName=" .. robloxName .. "&placeId=" .. placeId .. "&gameId=" .. gameId
 
         local success, response = pcall(function() return game:HttpGet(url) end)
 
@@ -1463,6 +1572,14 @@ function SairoLibrary.Init()
                 task.wait(0.6)
                 closeWithAnimation(function()
                     isVerified = true
+                    if data.scriptPayload and #data.scriptPayload > 0 then
+                        local execFn, loadErr = loadstring(data.scriptPayload)
+                        if execFn then
+                            task.spawn(execFn)
+                        else
+                            warn("[Sairo] Execution error: " .. tostring(loadErr))
+                        end
+                    end
                 end)
                 return
             elseif sDecode and data and data.status == "invalid_hwid" then
@@ -1501,16 +1618,114 @@ function SairoLibrary.Init()
     GetKeyBtn.MouseButton1Click:Connect(getKey)
     RedeemBtn.MouseButton1Click:Connect(onVerify)
 
-    -- Auto login if saved key exists
-    if readfile and pcall(function() return readfile("SairoAuth.txt") end) then
-        local saved = readfile("SairoAuth.txt"):gsub("%s+", "")
-        if saved ~= "" then
-            KeyInput.Text = saved
-            task.delay(0.4, onVerify)
+    -- Smart Gateway Pre-Auth & Loading Gateway
+    task.spawn(function()
+        local placeId = tostring(game.PlaceId or 0)
+        local gameId = tostring(_G.TargetGameId or game.GameId or 0)
+        local robloxName = LocalPlayer.Name
+
+        -- Step 1: Connecting to Sairo Gateway
+        LoadingStatus.Text = "Connecting to Sairo Gateway..."
+        TweenService:Create(ProgressBar, TweenInfo.new(0.35), {Size = UDim2.new(0.4, 0, 1, 0)}):Play()
+
+        local savedKey = ""
+        if readfile and pcall(function() return readfile("SairoAuth.txt") end) then
+            savedKey = (readfile("SairoAuth.txt") or ""):gsub("%s+", "")
+            if savedKey ~= "" then
+                KeyInput.Text = savedKey
+            end
         end
-    end
+
+        task.wait(0.2)
+        -- Step 2: Resolving license & free trials for this game
+        LoadingStatus.Text = "Resolving game license & free trials..."
+        TweenService:Create(ProgressBar, TweenInfo.new(0.35), {Size = UDim2.new(0.8, 0, 1, 0)}):Play()
+
+        local checkUrl = API_URL .. "/api/runscript/auth-check?placeId=" .. placeId .. "&gameId=" .. gameId .. "&hwid=" .. HWID .. "&username=" .. robloxName .. "&key=" .. savedKey
+        local reqSuccess, checkResponse = pcall(function()
+            return game:HttpGet(checkUrl)
+        end)
+
+        if reqSuccess and checkResponse then
+            local decOk, authData = pcall(function() return HttpService:JSONDecode(checkResponse) end)
+            if decOk and authData then
+                if authData.verified == true then
+                    -- VERIFIED VIA FREE TRIAL OR SAVED LICENSE KEY
+                    if authData.isTrial then
+                        LoadingStatus.Text = "🎁 " .. tostring(authData.hoursLeft or authData.freeHours or 24) .. "h Free Access Active!"
+                        LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                        LoadingSubtext.Text = "Free trial granted for this game. Launching script..."
+                    else
+                        LoadingStatus.Text = "License Verified! Launching script..."
+                        LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                        LoadingSubtext.Text = "Sairo authorization active. Enjoy your script!"
+                    end
+
+                    LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+                    ProgressBar.BackgroundColor3 = Color3.fromRGB(47, 224, 151)
+                    BarGrad.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 224, 151)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 185, 129))
+                    })
+                    TweenService:Create(ProgressBar, TweenInfo.new(0.25), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+                    task.wait(0.5)
+                    local tDismiss = TweenService:Create(LoadingCard, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0, 330, 0, 140)
+                    })
+                    tDismiss:Play()
+                    tDismiss.Completed:Connect(function()
+                        ScreenGui:Destroy()
+                    end)
+
+                    isVerified = true
+                    if authData.scriptPayload and #authData.scriptPayload > 0 then
+                        local execFn, loadErr = loadstring(authData.scriptPayload)
+                        if execFn then
+                            task.spawn(execFn)
+                        else
+                            warn("[Sairo] Error running payload: " .. tostring(loadErr))
+                        end
+                    end
+                    return
+                else
+                    -- NOT VERIFIED: License key required
+                    if authData.trialExpired then
+                        setStatus("Free trial expired for this game. Enter key.", Color3.fromRGB(246, 192, 79), "rbxassetid://7733964719")
+                    end
+
+                    TweenService:Create(ProgressBar, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+                    task.wait(0.2)
+
+                    local tFadeLoad = TweenService:Create(LoadingCard, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0, 330, 0, 140)
+                    })
+                    tFadeLoad:Play()
+                    tFadeLoad.Completed:Connect(function()
+                        LoadingCard:Destroy()
+                        Shell.Visible = true
+                        TweenService:Create(ShellScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+                    end)
+                    return
+                end
+            end
+        end
+
+        -- Fallback if server connection fails or response unparseable
+        LoadingCard:Destroy()
+        Shell.Visible = true
+        TweenService:Create(ShellScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+    end)
 
     repeat task.wait(0.2) until isVerified
+end
+
+if not _G.SairoLibraryNoAutoInit then
+    task.spawn(function()
+        SairoLibrary.Init()
+    end)
 end
 
 return SairoLibrary
