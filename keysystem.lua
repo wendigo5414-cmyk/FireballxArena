@@ -229,26 +229,26 @@ function SairoLibrary.Init()
 
     -- Glowing Rainbow Gradient
     local BarGrad = Instance.new("UIGradient")
-    BarGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 65, 84)),    -- Crimson Red
-        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 140, 0)), -- Orange
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 225, 0)), -- Sun Gold
-        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 245, 150)),  -- Emerald Green
-        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 210, 255)),  -- Sky Cyan
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(185, 75, 255)), -- Electric Violet
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 65, 84))     -- Red Loop
-    })
     BarGrad.Parent = ProgressBar
 
-    -- Glossy Shine Glass Overlay on Progress Track
+    -- Glossy Shine Glass Overlay on Progress Track (Capsule Glass Glare)
     local ProgressShine = Instance.new("Frame")
     ProgressShine.Name = "ProgressShine"
-    ProgressShine.Size = UDim2.new(1, 0, 0.45, 0)
+    ProgressShine.Size = UDim2.new(1, 0, 0.48, 0)
     ProgressShine.Position = UDim2.new(0, 0, 0, 0)
     ProgressShine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ProgressShine.BackgroundTransparency = 0.88
+    ProgressShine.BackgroundTransparency = 0.84
     ProgressShine.BorderSizePixel = 0
+    ProgressShine.ZIndex = 4
     ProgressShine.Parent = ProgressTrack
+
+    local ShineGrad = Instance.new("UIGradient")
+    ShineGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.72),
+        NumberSequenceKeypoint.new(1, 1.0)
+    })
+    ShineGrad.Rotation = 90
+    ShineGrad.Parent = ProgressShine
 
     local LoadingSubtext = Instance.new("TextLabel")
     LoadingSubtext.Name = "LoadingSubtext"
@@ -263,9 +263,8 @@ function SairoLibrary.Init()
     LoadingSubtext.TextXAlignment = Enum.TextXAlignment.Left
     LoadingSubtext.Parent = LoadingCard
 
-    -- Dynamic Animation Loop for LoadingCard (Rainbow Flow + Rotating Stroke)
+    -- Dynamic Animation Loop for LoadingCard (Continuous Silky Chromatic Flow + Rotating Stroke)
     local loadingConn
-    local rgbOffset = 0
     loadingConn = RunService.RenderStepped:Connect(function(dt)
         if not LoadingCard or not LoadingCard.Parent or not ScreenGui.Parent then
             if loadingConn then loadingConn:Disconnect() end
@@ -274,9 +273,16 @@ function SairoLibrary.Init()
         if LoadingStrokeGrad and LoadingStrokeGrad.Parent then
             LoadingStrokeGrad.Rotation = (LoadingStrokeGrad.Rotation + (140 * dt)) % 360
         end
-        if BarGrad and BarGrad.Parent then
-            rgbOffset = (rgbOffset + (0.75 * dt)) % 1
-            BarGrad.Offset = Vector2.new(-rgbOffset, 0)
+        if BarGrad and BarGrad.Parent and not isVerified then
+            local t = tick() * 0.45
+            BarGrad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromHSV((t) % 1, 0.90, 1.0)),
+                ColorSequenceKeypoint.new(0.2, Color3.fromHSV((t + 0.2) % 1, 0.90, 1.0)),
+                ColorSequenceKeypoint.new(0.4, Color3.fromHSV((t + 0.4) % 1, 0.90, 1.0)),
+                ColorSequenceKeypoint.new(0.6, Color3.fromHSV((t + 0.6) % 1, 0.90, 1.0)),
+                ColorSequenceKeypoint.new(0.8, Color3.fromHSV((t + 0.8) % 1, 0.90, 1.0)),
+                ColorSequenceKeypoint.new(1, Color3.fromHSV((t + 1.0) % 1, 0.90, 1.0))
+            })
         end
     end)
 
@@ -1650,7 +1656,37 @@ function SairoLibrary.Init()
                     pcall(function() writefile("SairoAuth.txt", inputKey) end)
                 end
 
-                task.wait(0.6)
+                task.wait(0.4)
+
+                -- Seamless Handover to Decryption Chain if multi-layer script
+                if _G.SairoTotalLayers and _G.SairoTotalLayers > 1 and _G.SairoNextLayerUrl then
+                    local popShell = TweenService:Create(ShellScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.45})
+                    popShell:Play()
+                    popShell.Completed:Connect(function()
+                        Shell.Visible = false
+                        LoadingCard.Visible = true
+                        LoadingScale.Scale = 0.45
+                        LoadingCard.BackgroundTransparency = 0
+                        TweenService:Create(LoadingScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.0}):Play()
+                        LoadingStatus.Text = "License Verified! Decrypting Security Layers..."
+                        LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                        LoadingSubtext.Text = "Authorization confirmed. Initializing decryption chain..."
+                        task.wait(0.25)
+                        if _G.SairoSecurity and _G.SairoSecurity.AdvanceLayer then
+                            _G.SairoSecurity.AdvanceLayer(1, _G.SairoTotalLayers)
+                        end
+                        task.spawn(function()
+                            local s, err = pcall(function()
+                                loadstring(game:HttpGet(_G.SairoNextLayerUrl))()
+                            end)
+                            if not s then
+                                warn("[Sairo] Decryption chain error: " .. tostring(err))
+                            end
+                        end)
+                    end)
+                    return
+                end
+
                 closeWithAnimation(function()
                     isVerified = true
                     SairoLibrary._isVerified = true
@@ -1738,7 +1774,57 @@ function SairoLibrary.Init()
             end
         end
 
-        -- Step 2: Resolving license & free trials (40% -> 70% with 0.1s delay per 10%)
+        -- Define Global Sairo Security Decryption Controller
+        _G.SairoSecurity = {
+            TotalLayers = _G.SairoTotalLayers or 7,
+            CurrentLayer = 0,
+            AdvanceLayer = function(layerIdx, total)
+                total = total or _G.SairoTotalLayers or 7
+                _G.SairoSecurity.CurrentLayer = layerIdx
+                local pct = math.floor(60 + ((layerIdx / total) * 40))
+                pct = math.clamp(pct, 60, 100)
+                LoadingStatus.Text = "Decrypting Security Layer (" .. tostring(layerIdx) .. " / " .. tostring(total) .. ")..."
+                LoadingStatus.TextColor3 = Color3.fromRGB(239, 245, 255)
+                LoadingSubtext.Text = "Deobfuscating runtime bytecode layer " .. tostring(layerIdx) .. " of " .. tostring(total) .. "..."
+                LoadingPct.Text = tostring(pct) .. "%"
+                TweenService:Create(ProgressBar, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(pct / 100, 0, 1, 0)
+                }):Play()
+            end,
+            Finish = function()
+                LoadingStatus.Text = "Decryption Complete! Launching script..."
+                LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+                LoadingSubtext.Text = "All security layers unlocked. Enjoy your script!"
+                LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+                LoadingPct.Text = "100%"
+                isVerified = true
+                if BarGrad and BarGrad.Parent then
+                    BarGrad.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 224, 151)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 185, 129))
+                    })
+                end
+                TweenService:Create(ProgressBar, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+                task.wait(0.35)
+                local tDismiss = TweenService:Create(LoadingScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                    Scale = 0.45
+                })
+                TweenService:Create(LoadingCard, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+                TweenService:Create(Backdrop, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
+                tDismiss:Play()
+                tDismiss.Completed:Connect(function()
+                    LoadingCard:Destroy()
+                    if ScreenGui and ScreenGui.Parent then
+                        ScreenGui:Destroy()
+                    end
+                end)
+                isVerified = true
+                SairoLibrary._isVerified = true
+                SairoLibrary._active = false
+            end
+        }
+
+        -- Step 2: Resolving license & free trials
         LoadingStatus.Text = "Resolving game license & free trials..."
         LoadingSubtext.Text = "Verifying place ID " .. placeId .. " credentials..."
 
@@ -1758,16 +1844,39 @@ function SairoLibrary.Init()
             netDone = true
         end)
 
-        advanceProgress(70, 0.1)
+        -- If script has multiple security layers, only load up to 60% during handshake
+        -- The remaining 60% -> 100% will be dynamically mapped to layers (e.g. 1/7 to 7/7)
+        local targetHandshakePct = (_G.SairoTotalLayers and _G.SairoTotalLayers > 1) and 60 or 70
+        advanceProgress(targetHandshakePct, 0.1)
 
-        -- Await response if network is taking a moment, then complete to 100%
+        -- Await response if network is taking a moment, then complete handshake
         local waitBudget = 0
         while not netDone and waitBudget < 3.0 do
             task.wait(0.05)
             waitBudget = waitBudget + 0.05
         end
 
-        -- Step 3: Advance smoothly to 100% (70% -> 100% with 0.1s per 10%)
+        -- Check if layers are present and user is verified
+        if authData and authData.verified == true and _G.SairoTotalLayers and _G.SairoTotalLayers > 1 and _G.SairoNextLayerUrl then
+            -- Seamless Decryption Phase: Progress smoothly transitions into Layer Decryption (60% -> 100%)
+            LoadingStatus.Text = "License Verified! Decrypting Security Layers..."
+            LoadingStatus.TextColor3 = Color3.fromRGB(47, 224, 151)
+            LoadingSubtext.Text = "Authorization confirmed. Initializing decryption chain..."
+            LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+            task.wait(0.25)
+            _G.SairoSecurity.AdvanceLayer(1, _G.SairoTotalLayers)
+            task.spawn(function()
+                local s, err = pcall(function()
+                    loadstring(game:HttpGet(_G.SairoNextLayerUrl))()
+                end)
+                if not s then
+                    warn("[Sairo] Decryption chain error: " .. tostring(err))
+                end
+            end)
+            return
+        end
+
+        -- Step 3: Normal complete (No layers attached)
         advanceProgress(100, 0.1)
         LoadingPct.Text = "100%"
 
@@ -1784,6 +1893,13 @@ function SairoLibrary.Init()
                 LoadingSubtext.Text = "Sairo authorization active. Welcome back!"
             end
             LoadingIcon.ImageColor3 = Color3.fromRGB(47, 224, 151)
+            isVerified = true
+            if BarGrad and BarGrad.Parent then
+                BarGrad.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 224, 151)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 185, 129))
+                })
+            end
 
             task.wait(0.35)
             -- Pop-in shrink dismissal
