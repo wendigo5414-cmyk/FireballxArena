@@ -101,6 +101,7 @@ return function(Window, Tabs, WindUI)
     local LocalPlayer = Players.LocalPlayer
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
+    local TweenService = game:GetService("TweenService")
 
     -- ══════════════════════════════════════════
     --              NUMBER CONVERTER
@@ -188,11 +189,58 @@ return function(Window, Tabs, WindUI)
         local currentWalkspeed = 16
         local currentJumpHeight = 7
         local speedJumpEnabled = false
+        local activeSpeedTween = nil
+        local speedTweenConnection = nil
+        local TWEEN_STEP_TIME = 0.08
+        local speedTweenInfo = TweenInfo.new(TWEEN_STEP_TIME, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
-        local function applyWalkspeed(character)
-            if character and character:FindFirstChild("Humanoid") then
-                character.Humanoid.WalkSpeed = currentWalkspeed
+        local function stopTweenSpeed()
+            if activeSpeedTween then
+                pcall(function()
+                    activeSpeedTween:Cancel()
+                end)
+                activeSpeedTween = nil
             end
+        end
+
+        local function startTweenSpeedLoop()
+            if speedTweenConnection then
+                speedTweenConnection:Disconnect()
+                speedTweenConnection = nil
+            end
+
+            speedTweenConnection = RunService.Heartbeat:Connect(function()
+                if not speedJumpEnabled then
+                    stopTweenSpeed()
+                    return
+                end
+
+                local character = LocalPlayer.Character
+                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+                if not humanoid or not hrp or humanoid.Health <= 0 then
+                    stopTweenSpeed()
+                    return
+                end
+
+                local moveDir = humanoid.MoveDirection
+                if moveDir.Magnitude > 0 and currentWalkspeed > 16 then
+                    local baseSpeed = humanoid.WalkSpeed
+                    local extraSpeed = math.max(0, currentWalkspeed - baseSpeed)
+                    if extraSpeed > 0 then
+                        local offset = moveDir.Unit * (extraSpeed * TWEEN_STEP_TIME)
+                        local targetCFrame = hrp.CFrame + Vector3.new(offset.X, 0, offset.Z)
+                        stopTweenSpeed()
+                        activeSpeedTween = TweenService:Create(hrp, speedTweenInfo, { CFrame = targetCFrame })
+                        activeSpeedTween:Play()
+                    else
+                        stopTweenSpeed()
+                    end
+                else
+                    stopTweenSpeed()
+                end
+            end)
         end
 
         local function applyJumpHeight(character)
@@ -201,12 +249,11 @@ return function(Window, Tabs, WindUI)
             end
         end
 
-        -- Apply stats continuously every 0.5 seconds if enabled
+        -- Apply JumpHeight continuously every 0.5 seconds if enabled
         task.spawn(function()
             while true do
                 task.wait(0.5)
                 if speedJumpEnabled then
-                    applyWalkspeed(LocalPlayer.Character)
                     applyJumpHeight(LocalPlayer.Character)
                 end
             end
@@ -219,9 +266,14 @@ return function(Window, Tabs, WindUI)
             Callback = function(Value)
                 speedJumpEnabled = Value
                 if Value then
-                    applyWalkspeed(LocalPlayer.Character)
+                    startTweenSpeedLoop()
                     applyJumpHeight(LocalPlayer.Character)
                 else
+                    stopTweenSpeed()
+                    if speedTweenConnection then
+                        speedTweenConnection:Disconnect()
+                        speedTweenConnection = nil
+                    end
                     -- Reset to default when turned off
                     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
                         LocalPlayer.Character.Humanoid.WalkSpeed = 16
@@ -234,13 +286,13 @@ return function(Window, Tabs, WindUI)
         Tabs.Movement:Slider({
             Flag = "SpeedSlider",
             Title = "Speed Slider",
-            Desc = "Change your WalkSpeed",
+            Desc = "Change your Tween Speed",
             Step = 1,
             Value = { Min = 16, Max = 400, Default = 16 },
             Callback = function(Value)
                 currentWalkspeed = Value
-                if speedJumpEnabled then
-                    applyWalkspeed(LocalPlayer.Character)
+                if not speedJumpEnabled or currentWalkspeed <= 16 then
+                    stopTweenSpeed()
                 end
             end
         })
