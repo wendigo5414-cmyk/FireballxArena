@@ -155,6 +155,59 @@ return function(Window, Tabs, WindUI)
     local TweenService = game:GetService("TweenService")
 
     -- ══════════════════════════════════════════
+    --         AUTO CAMERA ZOOM UNLOCKER
+    -- ══════════════════════════════════════════
+    local TARGET_MAX_ZOOM = 100000
+    local TARGET_MIN_ZOOM = 0.5
+
+    local function unlockCameraZoom()
+        pcall(function()
+            if not LocalPlayer then return end
+            if LocalPlayer.CameraMode == Enum.CameraMode.LockFirstPerson then
+                LocalPlayer.CameraMode = Enum.CameraMode.Classic
+            end
+            if LocalPlayer.CameraMaxZoomDistance < TARGET_MAX_ZOOM then
+                LocalPlayer.CameraMaxZoomDistance = TARGET_MAX_ZOOM
+            end
+            if LocalPlayer.CameraMinZoomDistance > TARGET_MIN_ZOOM then
+                LocalPlayer.CameraMinZoomDistance = TARGET_MIN_ZOOM
+            end
+        end)
+    end
+
+    -- 1. Unlock immediately on script execution
+    unlockCameraZoom()
+
+    -- 2. Instant lock detection via GetPropertyChangedSignal
+    if LocalPlayer then
+        pcall(function()
+            LocalPlayer:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function()
+                if LocalPlayer.CameraMaxZoomDistance < TARGET_MAX_ZOOM then
+                    LocalPlayer.CameraMaxZoomDistance = TARGET_MAX_ZOOM
+                end
+            end)
+            LocalPlayer:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function()
+                if LocalPlayer.CameraMinZoomDistance > TARGET_MIN_ZOOM then
+                    LocalPlayer.CameraMinZoomDistance = TARGET_MIN_ZOOM
+                end
+            end)
+            LocalPlayer:GetPropertyChangedSignal("CameraMode"):Connect(function()
+                if LocalPlayer.CameraMode == Enum.CameraMode.LockFirstPerson then
+                    LocalPlayer.CameraMode = Enum.CameraMode.Classic
+                end
+            end)
+        end)
+    end
+
+    -- 3. 5-second fallback loop to guarantee zoom stays unlocked
+    task.spawn(function()
+        while true do
+            task.wait(5)
+            unlockCameraZoom()
+        end
+    end)
+
+    -- ══════════════════════════════════════════
     --              NUMBER CONVERTER
     -- ══════════════════════════════════════════
     local NumberConverter = {}
