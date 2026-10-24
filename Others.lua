@@ -3,39 +3,73 @@ return function(Window, Tabs, WindUI)
     --        AUTO-FLAG INJECTION SYSTEM
     -- ══════════════════════════════════════════
     -- 1. Proactive hooking (for UI components created AFTER this script loads)
+    local function registerFlagElement(flag, element)
+        if not flag or type(element) ~= "table" then return end
+        if not Window.Flags then Window.Flags = {} end
+        Window.Flags[flag] = element
+
+        if not WindUI.Flags then WindUI.Flags = {} end
+        WindUI.Flags[flag] = element
+    end
+
     local function hookContainer(containerObj, tabPrefix)
-        if type(containerObj) ~= "table" then return end
+        if type(containerObj) ~= "table" or containerObj.__pxhHooked then return end
+        containerObj.__pxhHooked = true
         
         local methodsToHook = {"Toggle", "Slider", "Dropdown", "Input", "Colorpicker", "Keybind"}
         for _, method in ipairs(methodsToHook) do
             local originalMethod = containerObj[method]
             if type(originalMethod) == "function" then
                 containerObj[method] = function(self, options)
-                    if options and type(options) == "table" and options.Title then
-                        if not options.Flag then
+                    local elementRef = nil
+                    local initialVal = nil
+                    if options and type(options) == "table" then
+                        if options.Title and not options.Flag then
                             options.Flag = "PXHRetro_" .. tostring(options.Title):gsub("[^%w]", "")
                         end
                         if options.Save == nil then
                             options.Save = true
                         end
+
+                        if method == "Slider" and type(options.Value) == "table" then
+                            initialVal = options.Value.Default or options.Value.Min or 0
+                        else
+                            initialVal = options.Value
+                        end
+
+                        local origCallback = options.Callback
+                        options.Callback = function(val, ...)
+                            if type(elementRef) == "table" then
+                                elementRef.__savedValue = val
+                            end
+                            if type(origCallback) == "function" then
+                                return origCallback(val, ...)
+                            end
+                        end
                     end
+
                     local element = originalMethod(self, options)
+                    elementRef = element
+
                     -- Ensure it gets pushed to WindUI state
                     pcall(function()
-                        if element and options then
+                        if type(element) == "table" and options then
                             if not element.Flag and options.Flag then
                                 element.Flag = options.Flag
                             end
                             if element.Save == nil and options.Save ~= nil then
                                 element.Save = options.Save
                             end
+                            if element.__savedValue == nil then
+                                if method == "Slider" or element.__type == "Slider" then
+                                    element.__savedValue = (type(element.Value) == "table" and element.Value.Default) or initialVal
+                                else
+                                    element.__savedValue = (element.Value ~= nil and element.Value) or initialVal
+                                end
+                            end
                             
                             if element.Flag then
-                                if not Window.Flags then Window.Flags = {} end
-                                Window.Flags[element.Flag] = element
-
-                                if not WindUI.Flags then WindUI.Flags = {} end
-                                WindUI.Flags[element.Flag] = element
+                                registerFlagElement(element.Flag, element)
                             end
                         end
                     end)
@@ -67,26 +101,38 @@ return function(Window, Tabs, WindUI)
             if type(obj) ~= "table" or seen[obj] then return end
             seen[obj] = true
 
-            if obj.Type and obj.Title and type(obj.Callback) == "function" then
+            local elemType = obj.__type or obj.Type
+            if elemType and obj.Title and type(obj.Callback) == "function" then
                 if not obj.Flag then
                     obj.Flag = "PXHRetro_" .. tostring(obj.Title):gsub("[^%w]", "")
                 end
                 if obj.Save == nil then
                     obj.Save = true
                 end
+                if not obj.__pxhCallbackHooked then
+                    obj.__pxhCallbackHooked = true
+                    local origCb = obj.Callback
+                    obj.Callback = function(val, ...)
+                        obj.__savedValue = val
+                        return origCb(val, ...)
+                    end
+                end
+                if obj.__savedValue == nil then
+                    if elemType == "Slider" and type(obj.Value) == "table" then
+                        obj.__savedValue = obj.Value.Default
+                    else
+                        obj.__savedValue = obj.Value
+                    end
+                end
                 pcall(function()
                     if obj.Flag then
-                        if not Window.Flags then Window.Flags = {} end
-                        Window.Flags[obj.Flag] = obj
-
-                        if not WindUI.Flags then WindUI.Flags = {} end
-                        WindUI.Flags[obj.Flag] = obj
+                        registerFlagElement(obj.Flag, obj)
                     end
                 end)
             end
 
             for k, v in pairs(obj) do
-                if type(v) == "table" then
+                if type(v) == "table" and k ~= "Parent" and k ~= "Window" and k ~= "WindUI" then
                     pcall(scan, v)
                 end
             end
@@ -94,6 +140,11 @@ return function(Window, Tabs, WindUI)
         pcall(scan, Window)
         pcall(scan, Tabs)
         pcall(scan, WindUI)
+        if type(Window) == "table" and type(Window.PendingFlags) == "table" then
+            for flag, elem in pairs(Window.PendingFlags) do
+                registerFlagElement(flag, elem)
+            end
+        end
     end
     retrofitElements()
 
@@ -383,7 +434,7 @@ return function(Window, Tabs, WindUI)
 
         Tabs.Movement:Toggle({
             Flag = "ProximityPrompt",
-            Title = "Proximity Prompt",
+            Title = "Instant Proximity Prompt",
             Value = false,
             Callback = function(Value)
                 instantPromptsEnabled = Value
@@ -410,8 +461,12 @@ return function(Window, Tabs, WindUI)
     --              TELEPORT TAB
     -- ══════════════════════════════════════════
     if Tabs.Teleport then
-        local TeleportSection = Tabs.Teleport:Section({
-            Title = "Player Teleport",
+        local BasicTeleportSection = Tabs.Teleport:Section({
+            Title = "Basic Teleport",
+            Box = true,
+            BoxBorder = true,
+            Expandable = true,
+            Opened = true
         })
 
         local function getPlayerNames()
@@ -424,7 +479,7 @@ return function(Window, Tabs, WindUI)
 
         local selectedPlayerName = nil
 
-        local PlayerDropdown = Tabs.Teleport:Dropdown({
+        local PlayerDropdown = BasicTeleportSection:Dropdown({
             Flag = "PlayerDropdown",
             Title = "Select Player",
             Desc = "Choose a player to teleport to",
@@ -439,7 +494,7 @@ return function(Window, Tabs, WindUI)
         Players.PlayerAdded:Connect(function()   PlayerDropdown:Refresh(getPlayerNames()) end)
         Players.PlayerRemoving:Connect(function() PlayerDropdown:Refresh(getPlayerNames()) end)
 
-        Tabs.Teleport:Button({
+        BasicTeleportSection:Button({
             Title = "Teleport to Selected Player",
             Desc = "Teleports you to the chosen player",
             Callback = function()
@@ -471,13 +526,9 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        local PositionMemorySection = Tabs.Teleport:Section({
-            Title = "Position Memory",
-        })
-
         local savedPos = nil
 
-        Tabs.Teleport:Button({
+        BasicTeleportSection:Button({
             Title = "Save Current Position",
             Desc = "Stores where you are standing right now",
             Callback = function()
@@ -491,7 +542,7 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        Tabs.Teleport:Button({
+        BasicTeleportSection:Button({
             Title = "Teleport to Saved Position",
             Desc = "Teleports you back to the saved position",
             Callback = function()
@@ -514,9 +565,13 @@ return function(Window, Tabs, WindUI)
     if Tabs.Settings then
         local ConfigSection = Tabs.Settings:Section({
             Title = "Configuration",
+            Box = true,
+            BoxBorder = true,
+            Expandable = true,
+            Opened = true
         })
 
-        Tabs.Settings:Button({
+        ConfigSection:Button({
             Title = "Enable Anti AFK",
             Desc = "Prevents you from being kicked for idle. Rejoin to turn off.",
             Icon = "solar:shield-bold",
@@ -546,7 +601,7 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        -- Custom Configuration System
+        -- Custom Global Configuration System (Not Locked Per Game)
         local ConfigFolder = "PXH_Configs"
         local HttpService = game:GetService("HttpService")
         local autoloadFile = "PXH_AutoLoad.json"
@@ -556,26 +611,17 @@ return function(Window, Tabs, WindUI)
         end
 
         local function GetGameConfigs()
-            local prefix = tostring(game.PlaceId) .. "_"
             local list = {}
             local seen = {}
             if listfiles then
                 pcall(function()
                     for _, file in ipairs(listfiles(ConfigFolder)) do
-                        -- Extract filename without path and without .json extension
                         local filename = string.match(file, "([^/\\]+)%.json$")
                         if filename then
-                            if string.sub(filename, 1, string.len(prefix)) == prefix then
-                                local stripped = string.sub(filename, string.len(prefix) + 1)
-                                if not seen[stripped] then
-                                    table.insert(list, stripped)
-                                    seen[stripped] = true
-                                end
-                            elseif not string.match(filename, "^%d+_") then
-                                if not seen[filename] then
-                                    table.insert(list, filename)
-                                    seen[filename] = true
-                                end
+                            local stripped = string.match(filename, "^%d+_(.+)$") or filename
+                            if stripped and stripped ~= "" and not seen[stripped] then
+                                table.insert(list, stripped)
+                                seen[stripped] = true
                             end
                         end
                     end
@@ -583,58 +629,180 @@ return function(Window, Tabs, WindUI)
             end
             return list
         end
+
+        local function getElementCurrentValue(obj)
+            if type(obj) ~= "table" then return nil end
+            local elemType = obj.__type or obj.Type
+            if elemType == "Slider" or (type(obj.Value) == "table" and obj.Value.Default ~= nil) then
+                if type(obj.__savedValue) == "number" then
+                    return obj.__savedValue
+                elseif type(obj.Value) == "table" and obj.Value.Default ~= nil then
+                    return tonumber(obj.Value.Default) or obj.Value.Default
+                end
+            end
+            if obj.__savedValue ~= nil then
+                return obj.__savedValue
+            end
+            if obj.Value ~= nil then
+                return obj.Value
+            end
+            return obj.State
+        end
+
+        local function unwrapSavedValue(rawVal)
+            if type(rawVal) == "table" then
+                if rawVal.Default ~= nil then
+                    return tonumber(rawVal.Default) or rawVal.Default
+                elseif rawVal.__type ~= nil and rawVal.value ~= nil then
+                    return rawVal.value
+                end
+            end
+            return rawVal
+        end
+
+        local function applyValueToElement(uiElement, rawVal)
+            if type(uiElement) ~= "table" then return end
+            local val = unwrapSavedValue(rawVal)
+            local elemType = uiElement.__type or uiElement.Type
+            local isSlider = (elemType == "Slider") or (type(uiElement.Value) == "table" and uiElement.Value.Default ~= nil)
+            local isToggle = (elemType == "Toggle") or (type(val) == "boolean")
+
+            if isSlider then
+                local numVal = tonumber(val)
+                if not numVal then return end
+                if type(uiElement.Set) == "function" then
+                    pcall(function() uiElement:Set(numVal) end)
+                elseif type(uiElement.SetValue) == "function" then
+                    pcall(function() uiElement:SetValue(numVal) end)
+                end
+                if type(uiElement.Value) == "table" then
+                    uiElement.Value.Default = numVal
+                end
+                uiElement.__savedValue = numVal
+                if type(uiElement.Callback) == "function" then
+                    pcall(uiElement.Callback, numVal)
+                end
+            elseif isToggle then
+                local boolVal = (val == true)
+                if type(uiElement.Set) == "function" then
+                    pcall(function() uiElement:Set(boolVal) end)
+                elseif type(uiElement.SetValue) == "function" then
+                    pcall(function() uiElement:SetValue(boolVal) end)
+                end
+                uiElement.Value = boolVal
+                uiElement.__savedValue = boolVal
+                if type(uiElement.Callback) == "function" then
+                    pcall(uiElement.Callback, boolVal)
+                end
+            else
+                if type(uiElement.Set) == "function" then
+                    pcall(function() uiElement:Set(val) end)
+                elseif type(uiElement.SetValue) == "function" then
+                    pcall(function() uiElement:SetValue(val) end)
+                else
+                    uiElement.Value = val
+                end
+                uiElement.__savedValue = val
+                if type(uiElement.Callback) == "function" then
+                    pcall(uiElement.Callback, val)
+                end
+            end
+        end
         
         local function SaveConfig(configName)
             if not writefile then return false end
+            retrofitElements()
             local settingsToSave = {}
             local targetObj = Window.Flags or WindUI.Flags or {}
             
             for key, obj in pairs(targetObj) do
                 if type(obj) == "table" and obj.Save ~= false then
-                    -- Detect WindUI elements values. They usually use .Value or .State, etc.
-                    local val = obj.Value
-                    if val == nil then val = obj.State end
-                    -- Save it
-                    settingsToSave[key] = val
+                    local val = getElementCurrentValue(obj)
+                    if val ~= nil then
+                        settingsToSave[key] = val
+                    end
                 end
             end
             
-            local success, err = pcall(function()
-                local path = ConfigFolder .. "/" .. tostring(game.PlaceId) .. "_" .. configName .. ".json"
+            local success = pcall(function()
+                local path = ConfigFolder .. "/" .. configName .. ".json"
                 writefile(path, HttpService:JSONEncode(settingsToSave))
             end)
             return success
         end
 
+        local function resolveConfigPath(configName)
+            local globalPath = ConfigFolder .. "/" .. configName .. ".json"
+            if isfile(globalPath) then
+                return globalPath
+            end
+            local legacyPlacePath = ConfigFolder .. "/" .. tostring(game.PlaceId) .. "_" .. configName .. ".json"
+            if isfile(legacyPlacePath) then
+                return legacyPlacePath
+            end
+            if listfiles then
+                local foundPath = nil
+                pcall(function()
+                    for _, file in ipairs(listfiles(ConfigFolder)) do
+                        local fname = string.match(file, "([^/\\]+)%.json$")
+                        if fname then
+                            local stripped = string.match(fname, "^%d+_(.+)$")
+                            if stripped == configName then
+                                foundPath = file
+                                break
+                            end
+                        end
+                    end
+                end)
+                if foundPath then return foundPath end
+            end
+            return nil
+        end
+
         local function LoadConfig(configName)
             if not isfile or not readfile then return false end
+            retrofitElements()
             
-            local path = ConfigFolder .. "/" .. tostring(game.PlaceId) .. "_" .. configName .. ".json"
-            if not isfile(path) then 
-                path = ConfigFolder .. "/" .. configName .. ".json" -- legacy fallback
-                if not isfile(path) then return false end
-            end
+            local path = resolveConfigPath(configName)
+            if not path then return false end
             
             local success, savedSettings = pcall(function()
                 return HttpService:JSONDecode(readfile(path))
             end)
             
             if success and type(savedSettings) == "table" then
+                if savedSettings.__elements and type(savedSettings.__elements) == "table" then
+                    savedSettings = savedSettings.__elements
+                end
+
                 local targetObj = Window.Flags or WindUI.Flags or {}
-                for key, val in pairs(savedSettings) do
+
+                -- Pass 1: Apply Sliders, Dropdowns, Inputs, Colorpickers first (so speed/jump values are ready before toggles activate)
+                for key, rawVal in pairs(savedSettings) do
                     local uiElement = targetObj[key]
                     if uiElement then
-                        if type(uiElement.Set) == "function" then
-                            pcall(function() uiElement:Set(val) end)
-                        elseif type(uiElement.SetValue) == "function" then
-                            pcall(function() uiElement:SetValue(val) end)
-                        elseif type(uiElement.Callback) == "function" then
-                            if uiElement.Value ~= nil then uiElement.Value = val end
-                            if uiElement.State ~= nil then uiElement.State = val end
-                            pcall(uiElement.Callback, val)
+                        local val = unwrapSavedValue(rawVal)
+                        local elemType = uiElement.__type or uiElement.Type
+                        local isToggle = (elemType == "Toggle") or (type(val) == "boolean")
+                        if not isToggle then
+                            applyValueToElement(uiElement, val)
                         end
                     end
                 end
+
+                -- Pass 2: Apply Toggles
+                for key, rawVal in pairs(savedSettings) do
+                    local uiElement = targetObj[key]
+                    if uiElement then
+                        local val = unwrapSavedValue(rawVal)
+                        local elemType = uiElement.__type or uiElement.Type
+                        local isToggle = (elemType == "Toggle") or (type(val) == "boolean")
+                        if isToggle then
+                            applyValueToElement(uiElement, val)
+                        end
+                    end
+                end
+
                 return true
             end
             return false
@@ -642,7 +810,7 @@ return function(Window, Tabs, WindUI)
 
         local ConfigName = ""
 
-        local ConfigNameInput = Tabs.Settings:Input({
+        local ConfigNameInput = ConfigSection:Input({
             Title = "Config Name",
             Desc = "Enter config name to save/load",
             Icon = "solar:file-text-bold",
@@ -655,7 +823,7 @@ return function(Window, Tabs, WindUI)
         local GameConfigs = GetGameConfigs()
         local DefaultValue = table.find(GameConfigs, ConfigName) and ConfigName or nil
 
-        local AllConfigsDropdown = Tabs.Settings:Dropdown({
+        local AllConfigsDropdown = ConfigSection:Dropdown({
             Title = "All Configs",
             Desc = "Select an existing config",
             Values = GameConfigs,
@@ -667,7 +835,7 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        Tabs.Settings:Button({
+        ConfigSection:Button({
             Title = "Save Config",
             Desc = "Saves the current settings",
             Icon = "solar:diskette-bold",
@@ -690,7 +858,7 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        Tabs.Settings:Button({
+        ConfigSection:Button({
             Title = "Load Config",
             Desc = "Loads the selected settings",
             Icon = "solar:upload-bold",
@@ -713,9 +881,9 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        Tabs.Settings:Button({
+        ConfigSection:Button({
             Title = "Set As Auto Load (Other...)",
-            Desc = "Mark selected config to automatically load next time",
+            Desc = "Mark selected config to automatically load next time across all games",
             Icon = "solar:check-circle-bold",
             Callback = function()
                 if ConfigName == "" then
@@ -723,11 +891,9 @@ return function(Window, Tabs, WindUI)
                     return
                 end
                 pcall(function()
-                    local autoloads = {}
-                    if isfile and isfile(autoloadFile) then
-                        autoloads = HttpService:JSONDecode(readfile(autoloadFile))
-                    end
-                    autoloads[tostring(game.PlaceId)] = ConfigName
+                    local autoloads = {
+                        AutoLoadConfig = ConfigName
+                    }
                     if writefile then
                         writefile(autoloadFile, HttpService:JSONEncode(autoloads))
                         WindUI:Notify({Title = "Auto Load Enabled!", Content = "'" .. ConfigName .. "' will load automatically next time.", Duration = 4})
@@ -736,19 +902,33 @@ return function(Window, Tabs, WindUI)
             end
         })
 
-        -- Auto-load logic executed once 
+        -- Auto-load logic executed once (globally, not locked by game)
         task.spawn(function()
-            task.wait(1.5) -- small delay to ensure toggles are registered
+            task.wait(1.5) -- small delay to ensure all external toggles/sliders are registered
             local loadedAuto = false
             pcall(function()
                 if isfile and isfile(autoloadFile) then
-                    local autoloads = HttpService:JSONDecode(readfile(autoloadFile))
-                    local target = autoloads[tostring(game.PlaceId)]
-                    if target then
-                        if LoadConfig(target) then
-                            loadedAuto = true
-                            WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
+                    local decoded = HttpService:JSONDecode(readfile(autoloadFile))
+                    local target = nil
+                    if type(decoded) == "table" then
+                        target = decoded.AutoLoadConfig or decoded.global or decoded[tostring(game.PlaceId)]
+                        if not target then
+                            for _, v in pairs(decoded) do
+                                if type(v) == "string" and v ~= "" then
+                                    target = v
+                                    break
+                                end
+                            end
                         end
+                    elseif type(decoded) == "string" and decoded ~= "" then
+                        target = decoded
+                    end
+
+                    if target and LoadConfig(target) then
+                        loadedAuto = true
+                        ConfigName = target
+                        pcall(function() ConfigNameInput:Set(target) end)
+                        WindUI:Notify({Title = "Auto Load", Content = "'" .. target .. "' loaded automatically!", Duration = 5})
                     end
                 end
             end)
@@ -769,12 +949,12 @@ return function(Window, Tabs, WindUI)
         })
 
         Tabs.AboutUs:Button({
-            Title = "Prime X Store",
-            Desc = "Click to copy Discord link",
+            Title = "Sairo",
+            Desc = "Click to copy Discord link (dsc.gg/sairo)",
             Icon = "solar:link-bold",
             Callback = function()
-                setclipboard("https://discord.gg/BXAQebHqAR")
-                WindUI:Notify({ Title = "Copied!", Content = "Prime X Store link copied to clipboard.", Duration = 3 })
+                setclipboard("dsc.gg/sairo")
+                WindUI:Notify({ Title = "Copied!", Content = "Sairo link (dsc.gg/sairo) copied to clipboard.", Duration = 3 })
             end
         })
 
