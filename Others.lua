@@ -88,6 +88,17 @@ return function(Window, Tabs, WindUI)
                 return sectionObj
             end
         end
+
+        local originalGroup = containerObj.Group
+        if type(originalGroup) == "function" then
+            containerObj.Group = function(self, options)
+                local groupObj = originalGroup(self, options)
+                if groupObj and type(groupObj) == "table" then
+                    hookContainer(groupObj, tabPrefix)
+                end
+                return groupObj
+            end
+        end
     end
     
     for tabName, tabObj in pairs(Tabs) do
@@ -292,7 +303,12 @@ return function(Window, Tabs, WindUI)
 
         local currentWalkspeed = 16
         local currentJumpHeight = 7
-        local speedJumpEnabled = false
+        local normalSpeedEnabled = false
+        local tweenSpeedEnabled = false
+        local isSyncingSpeedToggles = false
+        local NormalSpeedToggle = nil
+        local TweenSpeedToggle = nil
+
         local activeSpeedTween = nil
         local speedTweenConnection = nil
         local TWEEN_STEP_TIME = 0.08
@@ -307,14 +323,31 @@ return function(Window, Tabs, WindUI)
             end
         end
 
-        local function startTweenSpeedLoop()
+        local function disconnectTweenSpeedLoop()
+            stopTweenSpeed()
             if speedTweenConnection then
                 speedTweenConnection:Disconnect()
                 speedTweenConnection = nil
             end
+        end
+
+        local function applyNormalWalkSpeed(character)
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.WalkSpeed = currentWalkspeed
+            end
+        end
+
+        local function applyJumpHeight(character)
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.JumpHeight = currentJumpHeight
+            end
+        end
+
+        local function startTweenSpeedLoop()
+            disconnectTweenSpeedLoop()
 
             speedTweenConnection = RunService.Heartbeat:Connect(function()
-                if not speedJumpEnabled then
+                if not tweenSpeedEnabled then
                     stopTweenSpeed()
                     return
                 end
@@ -347,39 +380,86 @@ return function(Window, Tabs, WindUI)
             end)
         end
 
-        local function applyJumpHeight(character)
-            if character and character:FindFirstChild("Humanoid") then
-                character.Humanoid.JumpHeight = currentJumpHeight
-            end
-        end
-
-        -- Apply JumpHeight continuously every 0.5 seconds if enabled
+        -- Apply WalkSpeed / JumpHeight continuously every 0.5 seconds if enabled
         task.spawn(function()
             while true do
                 task.wait(0.5)
-                if speedJumpEnabled then
+                if normalSpeedEnabled then
+                    applyNormalWalkSpeed(LocalPlayer.Character)
+                    applyJumpHeight(LocalPlayer.Character)
+                elseif tweenSpeedEnabled then
                     applyJumpHeight(LocalPlayer.Character)
                 end
             end
         end)
 
-        Tabs.Movement:Toggle({
+        -- Side-by-side mutually exclusive toggles on the same line using WindUI Group
+        local SpeedToggleGroup = Tabs.Movement:Group({})
+
+        NormalSpeedToggle = SpeedToggleGroup:Toggle({
             Flag = "SpeedJumpToggle",
-            Title = "Enable Speed & Jump",
+            Title = "Speed",
             Value = false,
             Callback = function(Value)
-                speedJumpEnabled = Value
+                if isSyncingSpeedToggles then return end
+                normalSpeedEnabled = Value
+
                 if Value then
+                    if tweenSpeedEnabled then
+                        isSyncingSpeedToggles = true
+                        tweenSpeedEnabled = false
+                        disconnectTweenSpeedLoop()
+                        if TweenSpeedToggle and type(TweenSpeedToggle.Set) == "function" then
+                            pcall(function() TweenSpeedToggle:Set(false) end)
+                        end
+                        if TweenSpeedToggle then
+                            TweenSpeedToggle.Value = false
+                            TweenSpeedToggle.__savedValue = false
+                        end
+                        isSyncingSpeedToggles = false
+                    end
+                    applyNormalWalkSpeed(LocalPlayer.Character)
+                    applyJumpHeight(LocalPlayer.Character)
+                else
+                    if not tweenSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                        LocalPlayer.Character.Humanoid.JumpHeight = 7
+                    end
+                end
+            end
+        })
+
+        SpeedToggleGroup:Space()
+
+        TweenSpeedToggle = SpeedToggleGroup:Toggle({
+            Flag = "TweenSpeedToggle",
+            Title = "Tween Speed",
+            Value = false,
+            Callback = function(Value)
+                if isSyncingSpeedToggles then return end
+                tweenSpeedEnabled = Value
+
+                if Value then
+                    if normalSpeedEnabled then
+                        isSyncingSpeedToggles = true
+                        normalSpeedEnabled = false
+                        if NormalSpeedToggle and type(NormalSpeedToggle.Set) == "function" then
+                            pcall(function() NormalSpeedToggle:Set(false) end)
+                        end
+                        if NormalSpeedToggle then
+                            NormalSpeedToggle.Value = false
+                            NormalSpeedToggle.__savedValue = false
+                        end
+                        isSyncingSpeedToggles = false
+                    end
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                    end
                     startTweenSpeedLoop()
                     applyJumpHeight(LocalPlayer.Character)
                 else
-                    stopTweenSpeed()
-                    if speedTweenConnection then
-                        speedTweenConnection:Disconnect()
-                        speedTweenConnection = nil
-                    end
-                    -- Reset to default when turned off
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    disconnectTweenSpeedLoop()
+                    if not normalSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
                         LocalPlayer.Character.Humanoid.WalkSpeed = 16
                         LocalPlayer.Character.Humanoid.JumpHeight = 7
                     end
@@ -390,12 +470,15 @@ return function(Window, Tabs, WindUI)
         Tabs.Movement:Slider({
             Flag = "SpeedSlider",
             Title = "Speed Slider",
-            Desc = "Change your Tween Speed",
+            Desc = "Change your Speed / Tween Speed",
             Step = 1,
             Value = { Min = 16, Max = 400, Default = 16 },
             Callback = function(Value)
                 currentWalkspeed = Value
-                if not speedJumpEnabled or currentWalkspeed <= 16 then
+                if normalSpeedEnabled then
+                    applyNormalWalkSpeed(LocalPlayer.Character)
+                end
+                if not tweenSpeedEnabled or currentWalkspeed <= 16 then
                     stopTweenSpeed()
                 end
             end
@@ -409,7 +492,7 @@ return function(Window, Tabs, WindUI)
             Value = { Min = 7, Max = 100, Default = 7 },
             Callback = function(Value)
                 currentJumpHeight = Value
-                if speedJumpEnabled then
+                if normalSpeedEnabled or tweenSpeedEnabled then
                     applyJumpHeight(LocalPlayer.Character)
                 end
             end
