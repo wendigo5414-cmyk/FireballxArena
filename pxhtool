@@ -1,0 +1,1307 @@
+-- [[ GAME SCRIPT START ]] --
+local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local RawReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = cloneref(RawReplicatedStorage)
+local Players = cloneref(game:GetService("Players"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local Workspace = cloneref(game:GetService("Workspace"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local RunService = cloneref(game:GetService("RunService"))
+
+local LocalPlayer = Players.LocalPlayer
+
+local WindUI
+local ok, result = pcall(function()
+    return require("./src/Init")
+end)
+
+if ok then
+    WindUI = result
+else 
+    if RunService:IsStudio() then
+        WindUI = require(cloneref(ReplicatedStorage:WaitForChild("WindUI"):WaitForChild("Init")))
+    else
+        local windUI_Source = game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua")
+        windUI_Source = windUI_Source:gsub("([%w_]+)\\.UserInputType%s*==%s*Enum\\.UserInputType\\.MouseButton1", "(%1.UserInputType == Enum.UserInputType.MouseButton1 or %1.UserInputType == Enum.UserInputType.Touch)")
+        windUI_Source = windUI_Source:gsub("([%w_]+)\\.UserInputType%s*==%s*Enum\\.UserInputType\\.MouseMovement", "(%1.UserInputType == Enum.UserInputType.MouseMovement or %1.UserInputType == Enum.UserInputType.Touch)")
+        WindUI = loadstring(windUI_Source)()
+    end
+end
+
+local gameName = "Unknown Game"
+pcall(function()
+    gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+end)
+
+local Window = WindUI:CreateWindow({
+    Title = "Prime X Hub | " .. gameName,
+    Folder = "PXH_Hub",
+    Icon = "solar:gamepad-bold",
+    HideSearchBar = false,
+    OpenButton = {
+        Title = "Open PXH Hub",
+        CornerRadius = UDim.new(1,0),
+        StrokeThickness = 3,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Scale = 0.8,
+        Color = ColorSequence.new(
+            Color3.fromHex("#30FF6A"), 
+            Color3.fromHex("#e7ff2f")
+        )
+    },
+    Topbar = {
+        Height = 44,
+        ButtonsType = "Mac",
+    },
+})
+
+Window:Tag({
+    Title = "by PXH",
+    Icon = "github",
+    Color = Color3.fromHex("#1c1c1c"),
+    Border = true,
+})
+
+local Tabs = {
+    Runs     = Window:Tab({ Title = "Runs", Icon = "solar:play-circle-bold" }),
+    Scan     = Window:Tab({ Title = "Scan", Icon = "solar:scanner-bold" }),
+    Movement = Window:Tab({ Title = "Movement", Icon = "solar:running-bold" }),
+    Teleport = Window:Tab({ Title = "Teleport", Icon = "solar:map-point-bold" }),
+    Settings = Window:Tab({ Title = "Settings", Icon = "solar:settings-bold" }),
+    AboutUs  = Window:Tab({ Title = "About Us", Icon = "solar:info-circle-bold" })
+}
+
+-- ══════════════════════════════════════════
+--              CLIPBOARD & TOUCH HELPERS
+-- ══════════════════════════════════════════
+local function CopyToClipboard(text)
+    if setclipboard then
+        setclipboard(text)
+    elseif toclipboard then
+        toclipboard(text)
+    elseif syn and syn.write_clipboard then
+        syn.write_clipboard(text)
+    else
+        print("[PXH] Clipboard copied: " .. tostring(text))
+    end
+end
+
+local executorName = identifyexecutor and ({identifyexecutor()})[1] or "Unknown"
+if type(executorName) == "string" and string.find(string.lower(executorName), "xeno") then
+    print("Detected: Xeno")
+else
+    print("Detected: Non-Xeno (" .. tostring(executorName) .. ")")
+end
+
+local function fireTouch(part, toPart)
+    if not part or not toPart then return end
+    local isMobile = UserInputService.TouchEnabled
+    firetouchinterest(part, toPart, 0)
+    if isMobile then
+        task.wait(0.01)
+        firetouchinterest(part, toPart, 1)
+    end
+end
+
+local function GetStructuralPath(instance)
+    if not instance then return "Unknown Path" end
+    local path = instance.Name
+    local current = instance.Parent
+    while current and current ~= game and current ~= nil do
+        path = current.Name .. "." .. path
+        current = current.Parent
+    end
+    return path
+end
+
+local function Get3DPosition(obj)
+    if not obj then return nil end
+    if obj:IsA("BasePart") then return obj.Position end
+    if obj:IsA("Model") then
+        local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+        if p then return p.Position end
+        return obj:GetPivot().Position
+    end
+    if obj:IsA("Attachment") then return obj.WorldPosition end
+    local parentPart = obj:FindFirstAncestorWhichIsA("BasePart")
+    if parentPart then return parentPart.Position end
+    return nil
+end
+
+local function MakeWindowDraggable(topbarFrame, targetFrame)
+    local dragging, dragInput, dragStart, startPos
+    topbarFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = targetFrame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            targetFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    topbarFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- ══════════════════════════════════════════
+--               RUNS TAB
+-- ══════════════════════════════════════════
+local RunsSection = Tabs.Runs:Section({
+    Title = "External Scripts",
+    Box = true,
+    BoxBorder = true,
+    Opened = true,
+})
+
+RunsSection:Button({
+    Title = "Infinite Yield",
+    Desc = "Execute Infinite Yield Admin Command Line Interface",
+    Icon = "solar:terminal-bold",
+    Justify = "Left",
+    Callback = function()
+        WindUI:Notify({
+            Title = "Running Script",
+            Content = "Executing Infinite Yield...",
+            Duration = 3
+        })
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+            end)
+        end)
+    end
+})
+
+RunsSection:Button({
+    Title = "MDex / Moon Dex",
+    Desc = "Execute Moon Dex Explorer / Debugger",
+    Icon = "solar:folder-with-files-bold",
+    Justify = "Left",
+    Callback = function()
+        WindUI:Notify({
+            Title = "Running Script",
+            Content = "Executing MDex / Moon Dex...",
+            Duration = 3
+        })
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+            end)
+        end)
+    end
+})
+
+-- ══════════════════════════════════════════
+--      MODERN SCANNER RESULT GUI ENGINES
+-- ══════════════════════════════════════════
+
+-- ── 1. Modern Text & GUI Scanner Result GUI ──
+local textScannerScreenGui = nil
+
+local function CreateModernTextScannerUI(scannedItems, scanMode)
+    if textScannerScreenGui and textScannerScreenGui.Parent then
+        textScannerScreenGui:Destroy()
+        textScannerScreenGui = nil
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PXH_TextScannerUI"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function() ScreenGui.Parent = CoreGui end)
+    if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    textScannerScreenGui = ScreenGui
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    MainFrame.Position = UDim2.new(0.5, -260, 0.5, -240)
+    MainFrame.Size = UDim2.new(0, 520, 0, 480)
+    MainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+    local mainStroke = Instance.new("UIStroke", MainFrame)
+    mainStroke.Color = Color3.fromRGB(50, 50, 60)
+    mainStroke.Thickness = 1.2
+
+    -- Topbar
+    local Topbar = Instance.new("Frame")
+    Topbar.Name = "Topbar"
+    Topbar.Parent = MainFrame
+    Topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 32)
+    Topbar.Size = UDim2.new(1, 0, 0, 38)
+    Topbar.BorderSizePixel = 0
+    local topCorner = Instance.new("UICorner", Topbar)
+    topCorner.CornerRadius = UDim.new(0, 8)
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = Topbar
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+    TitleLabel.Size = UDim2.new(0.75, 0, 1, 0)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "🔍 Text & GUI Scanner  [" .. string.upper(tostring(scanMode)) .. "]  (" .. #scannedItems .. ")"
+    TitleLabel.TextColor3 = Color3.fromRGB(80, 210, 255)
+    TitleLabel.TextSize = 13
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Parent = Topbar
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Position = UDim2.new(1, -38, 0, 0)
+    CloseBtn.Size = UDim2.new(0, 38, 1, 0)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+    CloseBtn.TextSize = 14
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        textScannerScreenGui = nil
+    end)
+
+    local MinBtn = Instance.new("TextButton")
+    MinBtn.Parent = Topbar
+    MinBtn.BackgroundTransparency = 1
+    MinBtn.Position = UDim2.new(1, -72, 0, 0)
+    MinBtn.Size = UDim2.new(0, 34, 1, 0)
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.Text = "—"
+    MinBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    MinBtn.TextSize = 14
+    local isMin = false
+    MinBtn.MouseButton1Click:Connect(function()
+        isMin = not isMin
+        local targetSize = isMin and UDim2.new(0, 520, 0, 38) or UDim2.new(0, 520, 0, 480)
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+    end)
+
+    MakeWindowDraggable(Topbar, MainFrame)
+
+    -- Controls Container (Search + Filter)
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Parent = MainFrame
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Position = UDim2.new(0, 12, 0, 46)
+    ControlFrame.Size = UDim2.new(1, -24, 0, 34)
+
+    local SearchBox = Instance.new("TextBox")
+    SearchBox.Parent = ControlFrame
+    SearchBox.BackgroundColor3 = Color3.fromRGB(26, 26, 32)
+    SearchBox.Position = UDim2.new(0, 0, 0, 0)
+    SearchBox.Size = UDim2.new(1, -150, 1, 0)
+    SearchBox.Font = Enum.Font.Gotham
+    SearchBox.PlaceholderText = "🔍 Search Text, Name or Path..."
+    SearchBox.Text = ""
+    SearchBox.TextColor3 = Color3.fromRGB(240, 240, 245)
+    SearchBox.TextSize = 12
+    Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
+    local sStroke = Instance.new("UIStroke", SearchBox)
+    sStroke.Color = Color3.fromRGB(48, 48, 58)
+
+    local FilterBtn = Instance.new("TextButton")
+    FilterBtn.Parent = ControlFrame
+    FilterBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+    FilterBtn.Position = UDim2.new(1, -140, 0, 0)
+    FilterBtn.Size = UDim2.new(0, 140, 1, 0)
+    FilterBtn.Font = Enum.Font.GothamBold
+    FilterBtn.Text = "⚙️ Filter: ALL"
+    FilterBtn.TextColor3 = Color3.fromRGB(80, 210, 255)
+    FilterBtn.TextSize = 11
+    Instance.new("UICorner", FilterBtn).CornerRadius = UDim.new(0, 6)
+    local fStroke = Instance.new("UIStroke", FilterBtn)
+    fStroke.Color = Color3.fromRGB(48, 48, 58)
+
+    -- Dropdown Menu
+    local DropdownMenu = Instance.new("Frame")
+    DropdownMenu.Parent = MainFrame
+    DropdownMenu.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    DropdownMenu.Position = UDim2.new(1, -164, 0, 84)
+    DropdownMenu.Size = UDim2.new(0, 152, 0, 148)
+    DropdownMenu.Visible = false
+    DropdownMenu.ZIndex = 120
+    Instance.new("UICorner", DropdownMenu).CornerRadius = UDim.new(0, 6)
+    local dropStroke = Instance.new("UIStroke", DropdownMenu)
+    dropStroke.Color = Color3.fromRGB(80, 210, 255)
+    local dropLayout = Instance.new("UIListLayout", DropdownMenu)
+    dropLayout.Padding = UDim.new(0, 2)
+    dropLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local ScrollList = Instance.new("ScrollingFrame")
+    ScrollList.Name = "ScrollList"
+    ScrollList.Parent = MainFrame
+    ScrollList.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    ScrollList.Position = UDim2.new(0, 12, 0, 88)
+    ScrollList.Size = UDim2.new(1, -24, 1, -98)
+    ScrollList.ScrollBarThickness = 4
+    ScrollList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 95)
+    ScrollList.BorderSizePixel = 0
+    ScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Instance.new("UICorner", ScrollList).CornerRadius = UDim.new(0, 6)
+    local listLayout = Instance.new("UIListLayout", ScrollList)
+    listLayout.Padding = UDim.new(0, 6)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local activeFilter = "ALL"
+    local filterOptions = {}
+    if scanMode == "Screen" then
+        filterOptions = { "ALL", "TextButton", "ImageButton", "Others" }
+    else
+        filterOptions = { "ALL", "Letters", "Numbers", "Symbols" }
+    end
+
+    local filterButtons = {}
+    for _, opt in ipairs(filterOptions) do
+        local btn = Instance.new("TextButton")
+        btn.Parent = DropdownMenu
+        btn.Size = UDim2.new(1, -6, 0, 32)
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = (opt == "ALL" and "✓ ALL" or "  " .. opt)
+        btn.TextColor3 = (opt == "ALL" and Color3.fromRGB(100, 255, 160) or Color3.fromRGB(210, 210, 220))
+        btn.TextSize = 11
+        btn.ZIndex = 125
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        filterButtons[opt] = btn
+    end
+
+    local rowCards = {}
+
+    local function RefreshCards()
+        local query = string.lower(SearchBox.Text)
+        local visibleCount = 0
+
+        for _, item in ipairs(scannedItems) do
+            local card = rowCards[item]
+            if card then
+                local txt = string.lower(item.Text or "")
+                local path = string.lower(item.Path or "")
+                local className = item.ClassName or ""
+
+                local matchesQuery = (query == "") or string.find(txt, query, 1, true) or string.find(path, query, 1, true)
+
+                local matchesFilter = false
+                if activeFilter == "ALL" then
+                    matchesFilter = true
+                elseif scanMode == "Screen" then
+                    if activeFilter == "TextButton" and className == "TextButton" then matchesFilter = true
+                    elseif activeFilter == "ImageButton" and className == "ImageButton" then matchesFilter = true
+                    elseif activeFilter == "Others" and className ~= "TextButton" and className ~= "ImageButton" then matchesFilter = true end
+                else
+                    if activeFilter == "Letters" and string.match(item.Text or "", "%a") then matchesFilter = true
+                    elseif activeFilter == "Numbers" and string.match(item.Text or "", "%d") then matchesFilter = true
+                    elseif activeFilter == "Symbols" and string.match(item.Text or "", "[^%w%s]") then matchesFilter = true end
+                end
+
+                if matchesQuery and matchesFilter then
+                    card.Visible = true
+                    visibleCount = visibleCount + 1
+                else
+                    card.Visible = false
+                end
+            end
+        end
+
+        ScrollList.CanvasSize = UDim2.new(0, 0, 0, visibleCount * 62)
+        TitleLabel.Text = "🔍 Text & GUI Scanner  [" .. string.upper(tostring(scanMode)) .. "]  (" .. visibleCount .. "/" .. #scannedItems .. ")"
+    end
+
+    for opt, btn in pairs(filterButtons) do
+        btn.MouseButton1Click:Connect(function()
+            activeFilter = opt
+            FilterBtn.Text = "⚙️ Filter: " .. opt
+            for o, b in pairs(filterButtons) do
+                if o == opt then
+                    b.TextColor3 = Color3.fromRGB(100, 255, 160)
+                    b.Text = "✓ " .. o
+                else
+                    b.TextColor3 = Color3.fromRGB(210, 210, 220)
+                    b.Text = "  " .. o
+                end
+            end
+            DropdownMenu.Visible = false
+            RefreshCards()
+        end)
+    end
+
+    FilterBtn.MouseButton1Click:Connect(function()
+        DropdownMenu.Visible = not DropdownMenu.Visible
+    end)
+
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(RefreshCards)
+
+    -- Build Cards
+    for _, item in ipairs(scannedItems) do
+        local Card = Instance.new("Frame")
+        Card.Parent = ScrollList
+        Card.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+        Card.Size = UDim2.new(1, -6, 0, 56)
+        Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
+        local cStroke = Instance.new("UIStroke", Card)
+        cStroke.Color = Color3.fromRGB(44, 44, 54)
+
+        local leftOffset = 10
+        if item.Image and item.Image ~= "" then
+            local thumb = Instance.new("ImageLabel")
+            thumb.Parent = Card
+            thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+            thumb.Position = UDim2.new(0, 8, 0, 8)
+            thumb.Size = UDim2.new(0, 40, 0, 40)
+            thumb.Image = item.Image
+            thumb.ScaleType = Enum.ScaleType.Fit
+            Instance.new("UICorner", thumb).CornerRadius = UDim.new(0, 4)
+            leftOffset = 56
+        end
+
+        local TitleText = Instance.new("TextLabel")
+        TitleText.Parent = Card
+        TitleText.BackgroundTransparency = 1
+        TitleText.Position = UDim2.new(0, leftOffset, 0, 6)
+        TitleText.Size = UDim2.new(1, -(leftOffset + 120), 0, 20)
+        TitleText.Font = Enum.Font.GothamBold
+        TitleText.Text = (item.ClassName and "[" .. item.ClassName .. "] " or "") .. tostring(item.Text or "Untitled")
+        TitleText.TextColor3 = Color3.fromRGB(250, 250, 255)
+        TitleText.TextSize = 12
+        TitleText.TextXAlignment = Enum.TextXAlignment.Left
+        TitleText.TextTruncate = Enum.TextTruncate.AtEnd
+
+        local PathText = Instance.new("TextLabel")
+        PathText.Parent = Card
+        PathText.BackgroundTransparency = 1
+        PathText.Position = UDim2.new(0, leftOffset, 0, 28)
+        PathText.Size = UDim2.new(1, -(leftOffset + 120), 0, 18)
+        PathText.Font = Enum.Font.Gotham
+        PathText.Text = tostring(item.Path or "No Path")
+        PathText.TextColor3 = Color3.fromRGB(150, 150, 165)
+        PathText.TextSize = 10
+        PathText.TextXAlignment = Enum.TextXAlignment.Left
+        PathText.TextTruncate = Enum.TextTruncate.AtEnd
+
+        -- Buttons
+        local Actions = Instance.new("Frame")
+        Actions.Parent = Card
+        Actions.BackgroundTransparency = 1
+        Actions.Position = UDim2.new(1, -114, 0, 12)
+        Actions.Size = UDim2.new(0, 106, 0, 32)
+        local aLayout = Instance.new("UIListLayout", Actions)
+        aLayout.FillDirection = Enum.FillDirection.Horizontal
+        aLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+        aLayout.Padding = UDim.new(0, 5)
+
+        if item.Pos3D then
+            local TpBtn = Instance.new("TextButton")
+            TpBtn.Parent = Actions
+            TpBtn.Size = UDim2.new(0, 45, 1, 0)
+            TpBtn.BackgroundColor3 = Color3.fromRGB(38, 166, 91)
+            TpBtn.Font = Enum.Font.GothamBold
+            TpBtn.Text = "TP"
+            TpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TpBtn.TextSize = 11
+            Instance.new("UICorner", TpBtn).CornerRadius = UDim.new(0, 4)
+            TpBtn.MouseButton1Click:Connect(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(item.Pos3D + Vector3.new(0, 3, 0))
+                end
+            end)
+        end
+
+        local CopyBtn = Instance.new("TextButton")
+        CopyBtn.Parent = Actions
+        CopyBtn.Size = UDim2.new(0, item.Pos3D and 52 or 95, 1, 0)
+        CopyBtn.BackgroundColor3 = Color3.fromRGB(48, 48, 60)
+        CopyBtn.Font = Enum.Font.GothamBold
+        CopyBtn.Text = "COPY"
+        CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CopyBtn.TextSize = 10
+        Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 4)
+        CopyBtn.MouseButton1Click:Connect(function()
+            CopyToClipboard(item.Path)
+            CopyBtn.Text = "COPIED!"
+            task.delay(1, function()
+                if CopyBtn and CopyBtn.Parent then CopyBtn.Text = "COPY" end
+            end)
+        end)
+
+        rowCards[item] = Card
+    end
+
+    RefreshCards()
+end
+
+-- ── 2. Modern 3D Visual & Spatial Scanner Result GUI ──
+local spatialScannerScreenGui = nil
+
+local function CreateModernSpatialScannerUI(scannedObjects, scanRadius)
+    if spatialScannerScreenGui and spatialScannerScreenGui.Parent then
+        spatialScannerScreenGui:Destroy()
+        spatialScannerScreenGui = nil
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PXH_SpatialScannerUI"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function() ScreenGui.Parent = CoreGui end)
+    if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    spatialScannerScreenGui = ScreenGui
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    MainFrame.Position = UDim2.new(0.5, -280, 0.5, -250)
+    MainFrame.Size = UDim2.new(0, 560, 0, 500)
+    MainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+    local mainStroke = Instance.new("UIStroke", MainFrame)
+    mainStroke.Color = Color3.fromRGB(50, 50, 60)
+    mainStroke.Thickness = 1.2
+
+    -- Topbar
+    local Topbar = Instance.new("Frame")
+    Topbar.Name = "Topbar"
+    Topbar.Parent = MainFrame
+    Topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 32)
+    Topbar.Size = UDim2.new(1, 0, 0, 38)
+    Topbar.BorderSizePixel = 0
+    Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 8)
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = Topbar
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+    TitleLabel.Size = UDim2.new(0.75, 0, 1, 0)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "🔮 3D Visual & Spatial Scanner (" .. tostring(scanRadius) .. " Studs)  [" .. #scannedObjects .. " Found]"
+    TitleLabel.TextColor3 = Color3.fromRGB(100, 255, 200)
+    TitleLabel.TextSize = 13
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Parent = Topbar
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Position = UDim2.new(1, -38, 0, 0)
+    CloseBtn.Size = UDim2.new(0, 38, 1, 0)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+    CloseBtn.TextSize = 14
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        spatialScannerScreenGui = nil
+    end)
+
+    local MinBtn = Instance.new("TextButton")
+    MinBtn.Parent = Topbar
+    MinBtn.BackgroundTransparency = 1
+    MinBtn.Position = UDim2.new(1, -72, 0, 0)
+    MinBtn.Size = UDim2.new(0, 34, 1, 0)
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.Text = "—"
+    MinBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    MinBtn.TextSize = 14
+    local isMin = false
+    MinBtn.MouseButton1Click:Connect(function()
+        isMin = not isMin
+        local targetSize = isMin and UDim2.new(0, 560, 0, 38) or UDim2.new(0, 560, 0, 500)
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+    end)
+
+    MakeWindowDraggable(Topbar, MainFrame)
+
+    -- Controls Frame (Search Box + Sort Dropdown + Multi-Filter Dropdown)
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Parent = MainFrame
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Position = UDim2.new(0, 12, 0, 46)
+    ControlFrame.Size = UDim2.new(1, -24, 0, 34)
+
+    local SearchBox = Instance.new("TextBox")
+    SearchBox.Parent = ControlFrame
+    SearchBox.BackgroundColor3 = Color3.fromRGB(26, 26, 32)
+    SearchBox.Position = UDim2.new(0, 0, 0, 0)
+    SearchBox.Size = UDim2.new(1, -270, 1, 0)
+    SearchBox.Font = Enum.Font.Gotham
+    SearchBox.PlaceholderText = "🔍 Search Name, Path, or Class..."
+    SearchBox.Text = ""
+    SearchBox.TextColor3 = Color3.fromRGB(240, 240, 245)
+    SearchBox.TextSize = 12
+    Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
+    local sStroke = Instance.new("UIStroke", SearchBox)
+    sStroke.Color = Color3.fromRGB(48, 48, 58)
+
+    -- Sort Button
+    local SortBtn = Instance.new("TextButton")
+    SortBtn.Parent = ControlFrame
+    SortBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+    SortBtn.Position = UDim2.new(1, -260, 0, 0)
+    SortBtn.Size = UDim2.new(0, 125, 1, 0)
+    SortBtn.Font = Enum.Font.GothamBold
+    SortBtn.Text = "⇅ Nearest"
+    SortBtn.TextColor3 = Color3.fromRGB(100, 255, 200)
+    SortBtn.TextSize = 11
+    Instance.new("UICorner", SortBtn).CornerRadius = UDim.new(0, 6)
+    local sortStroke = Instance.new("UIStroke", SortBtn)
+    sortStroke.Color = Color3.fromRGB(48, 48, 58)
+
+    -- Filter Multi Dropdown Button
+    local FilterBtn = Instance.new("TextButton")
+    FilterBtn.Parent = ControlFrame
+    FilterBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+    FilterBtn.Position = UDim2.new(1, -125, 0, 0)
+    FilterBtn.Size = UDim2.new(0, 125, 1, 0)
+    FilterBtn.Font = Enum.Font.GothamBold
+    FilterBtn.Text = "⚙️ Classes (ALL)"
+    FilterBtn.TextColor3 = Color3.fromRGB(255, 210, 100)
+    FilterBtn.TextSize = 11
+    Instance.new("UICorner", FilterBtn).CornerRadius = UDim.new(0, 6)
+    local filtStroke = Instance.new("UIStroke", FilterBtn)
+    filtStroke.Color = Color3.fromRGB(48, 48, 58)
+
+    -- Sort Menu Dropdown
+    local SortMenu = Instance.new("Frame")
+    SortMenu.Parent = MainFrame
+    SortMenu.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    SortMenu.Position = UDim2.new(1, -272, 0, 84)
+    SortMenu.Size = UDim2.new(0, 136, 0, 136)
+    SortMenu.Visible = false
+    SortMenu.ZIndex = 120
+    Instance.new("UICorner", SortMenu).CornerRadius = UDim.new(0, 6)
+    local sMenuStroke = Instance.new("UIStroke", SortMenu)
+    sMenuStroke.Color = Color3.fromRGB(100, 255, 200)
+    local sLayout = Instance.new("UIListLayout", SortMenu)
+    sLayout.Padding = UDim.new(0, 2)
+
+    -- Filter Menu Dropdown (Multi-select)
+    local FilterMenu = Instance.new("ScrollingFrame")
+    FilterMenu.Parent = MainFrame
+    FilterMenu.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    FilterMenu.Position = UDim2.new(1, -160, 0, 84)
+    FilterMenu.Size = UDim2.new(0, 148, 0, 180)
+    FilterMenu.Visible = false
+    FilterMenu.ZIndex = 120
+    FilterMenu.ScrollBarThickness = 3
+    Instance.new("UICorner", FilterMenu).CornerRadius = UDim.new(0, 6)
+    local fMenuStroke = Instance.new("UIStroke", FilterMenu)
+    fMenuStroke.Color = Color3.fromRGB(255, 210, 100)
+    local fLayout = Instance.new("UIListLayout", FilterMenu)
+    fLayout.Padding = UDim.new(0, 2)
+
+    local ScrollList = Instance.new("ScrollingFrame")
+    ScrollList.Name = "ScrollList"
+    ScrollList.Parent = MainFrame
+    ScrollList.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    ScrollList.Position = UDim2.new(0, 12, 0, 88)
+    ScrollList.Size = UDim2.new(1, -24, 1, -98)
+    ScrollList.ScrollBarThickness = 4
+    ScrollList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 95)
+    ScrollList.BorderSizePixel = 0
+    ScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Instance.new("UICorner", ScrollList).CornerRadius = UDim.new(0, 6)
+    local listLayout = Instance.new("UIListLayout", ScrollList)
+    listLayout.Padding = UDim.new(0, 6)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Sort Options: Big to Small, Small to Big, Nearest to Farthest, Farthest to Nearest
+    local currentSort = "Nearest to Farthest"
+    local sortOptions = {
+        { Label = "Nearest to Farthest", Key = "Nearest" },
+        { Label = "Farthest to Nearest", Key = "Farthest" },
+        { Label = "Big to Small", Key = "Big" },
+        { Label = "Small to Big", Key = "Small" }
+    }
+
+    local selectedClasses = { ALL = true }
+    local discoveredClasses = {}
+    for _, obj in ipairs(scannedObjects) do
+        discoveredClasses[obj.ClassName] = true
+    end
+
+    local rowCards = {}
+
+    local function ApplySortAndFilters()
+        local query = string.lower(SearchBox.Text)
+        local filtered = {}
+
+        for _, item in ipairs(scannedObjects) do
+            local matchesQuery = (query == "") 
+                or string.find(string.lower(item.Name or ""), query, 1, true)
+                or string.find(string.lower(item.Path or ""), query, 1, true)
+                or string.find(string.lower(item.ClassName or ""), query, 1, true)
+
+            local matchesClass = selectedClasses.ALL or selectedClasses[item.ClassName] == true
+
+            if matchesQuery and matchesClass then
+                table.insert(filtered, item)
+            end
+        end
+
+        -- Apply Sort
+        if currentSort == "Nearest to Farthest" then
+            table.sort(filtered, function(a, b) return (a.Distance or 0) < (b.Distance or 0) end)
+        elseif currentSort == "Farthest to Nearest" then
+            table.sort(filtered, function(a, b) return (a.Distance or 0) > (b.Distance or 0) end)
+        elseif currentSort == "Big to Small" then
+            table.sort(filtered, function(a, b) return (a.Volume or 0) > (b.Volume or 0) end)
+        elseif currentSort == "Small to Big" then
+            table.sort(filtered, function(a, b) return (a.Volume or 0) < (b.Volume or 0) end)
+        end
+
+        -- Update display orders and visibility
+        for _, card in pairs(rowCards) do
+            card.Visible = false
+        end
+
+        for i, item in ipairs(filtered) do
+            local card = rowCards[item]
+            if card then
+                card.Visible = true
+                card.LayoutOrder = i
+            end
+        end
+
+        ScrollList.CanvasSize = UDim2.new(0, 0, 0, #filtered * 64)
+        TitleLabel.Text = "🔮 3D Visual & Spatial Scanner (" .. tostring(scanRadius) .. " Studs)  [" .. #filtered .. "/" .. #scannedObjects .. "]"
+    end
+
+    -- Setup Sort Menu Buttons
+    for _, sOpt in ipairs(sortOptions) do
+        local btn = Instance.new("TextButton")
+        btn.Parent = SortMenu
+        btn.Size = UDim2.new(1, -6, 0, 30)
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = sOpt.Label
+        btn.TextColor3 = (sOpt.Label == currentSort and Color3.fromRGB(100, 255, 200) or Color3.fromRGB(200, 200, 210))
+        btn.TextSize = 10
+        btn.ZIndex = 125
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+        btn.MouseButton1Click:Connect(function()
+            currentSort = sOpt.Label
+            SortBtn.Text = "⇅ " .. sOpt.Key
+            SortMenu.Visible = false
+            ApplySortAndFilters()
+        end)
+    end
+
+    SortBtn.MouseButton1Click:Connect(function()
+        SortMenu.Visible = not SortMenu.Visible
+        FilterMenu.Visible = false
+    end)
+
+    -- Setup Multi-Filter Dropdown
+    local function RebuildFilterMenu()
+        for _, child in ipairs(FilterMenu:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+
+        local classList = { "ALL" }
+        for cls, _ in pairs(discoveredClasses) do
+            table.insert(classList, cls)
+        end
+
+        for _, cls in ipairs(classList) do
+            local btn = Instance.new("TextButton")
+            btn.Parent = FilterMenu
+            btn.Size = UDim2.new(1, -6, 0, 28)
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 11
+            btn.ZIndex = 125
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+            local isChecked = (cls == "ALL" and selectedClasses.ALL) or (selectedClasses[cls] == true)
+            btn.Text = (isChecked and "✓ " or "  ") .. cls
+            btn.TextColor3 = isChecked and Color3.fromRGB(255, 210, 100) or Color3.fromRGB(200, 200, 210)
+
+            btn.MouseButton1Click:Connect(function()
+                if cls == "ALL" then
+                    selectedClasses = { ALL = true }
+                else
+                    selectedClasses.ALL = false
+                    selectedClasses[cls] = not selectedClasses[cls]
+
+                    -- If all toggles are unchecked, fallback to ALL
+                    local anyChecked = false
+                    for k, val in pairs(selectedClasses) do
+                        if k ~= "ALL" and val then anyChecked = true break end
+                    end
+                    if not anyChecked then selectedClasses.ALL = true end
+                end
+
+                RebuildFilterMenu()
+                ApplySortAndFilters()
+            end)
+        end
+
+        FilterMenu.CanvasSize = UDim2.new(0, 0, 0, #classList * 30)
+    end
+
+    RebuildFilterMenu()
+
+    FilterBtn.MouseButton1Click:Connect(function()
+        FilterMenu.Visible = not FilterMenu.Visible
+        SortMenu.Visible = false
+    end)
+
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(ApplySortAndFilters)
+
+    -- Populate Cards
+    for _, item in ipairs(scannedObjects) do
+        local Card = Instance.new("Frame")
+        Card.Parent = ScrollList
+        Card.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+        Card.Size = UDim2.new(1, -6, 0, 58)
+        Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
+        local cStroke = Instance.new("UIStroke", Card)
+        cStroke.Color = Color3.fromRGB(44, 44, 54)
+
+        local HeaderText = Instance.new("TextLabel")
+        HeaderText.Parent = Card
+        HeaderText.BackgroundTransparency = 1
+        HeaderText.Position = UDim2.new(0, 10, 0, 5)
+        HeaderText.Size = UDim2.new(1, -135, 0, 18)
+        HeaderText.Font = Enum.Font.GothamBold
+        HeaderText.Text = "[" .. tostring(item.ClassName) .. "]  " .. tostring(item.Name)
+        HeaderText.TextColor3 = Color3.fromRGB(245, 245, 255)
+        HeaderText.TextSize = 12
+        HeaderText.TextXAlignment = Enum.TextXAlignment.Left
+        HeaderText.TextTruncate = Enum.TextTruncate.AtEnd
+
+        local DetailsText = Instance.new("TextLabel")
+        DetailsText.Parent = Card
+        DetailsText.BackgroundTransparency = 1
+        DetailsText.Position = UDim2.new(0, 10, 0, 23)
+        DetailsText.Size = UDim2.new(1, -135, 0, 15)
+        DetailsText.Font = Enum.Font.Gotham
+        local distStr = item.Distance and string.format("%.1fst", item.Distance) or "N/A"
+        local sizeStr = item.Size and string.format("%.0fx%.0fx%.0f", item.Size.X, item.Size.Y, item.Size.Z) or "-"
+        DetailsText.Text = "Dist: " .. distStr .. "  |  Size: " .. sizeStr
+        DetailsText.TextColor3 = Color3.fromRGB(100, 220, 180)
+        DetailsText.TextSize = 10
+        DetailsText.TextXAlignment = Enum.TextXAlignment.Left
+
+        local PathText = Instance.new("TextLabel")
+        PathText.Parent = Card
+        PathText.BackgroundTransparency = 1
+        PathText.Position = UDim2.new(0, 10, 0, 38)
+        PathText.Size = UDim2.new(1, -135, 0, 15)
+        PathText.Font = Enum.Font.Gotham
+        PathText.Text = tostring(item.Path or "No Path")
+        PathText.TextColor3 = Color3.fromRGB(140, 140, 155)
+        PathText.TextSize = 10
+        PathText.TextXAlignment = Enum.TextXAlignment.Left
+        PathText.TextTruncate = Enum.TextTruncate.AtEnd
+
+        -- Buttons
+        local Actions = Instance.new("Frame")
+        Actions.Parent = Card
+        Actions.BackgroundTransparency = 1
+        Actions.Position = UDim2.new(1, -114, 0, 13)
+        Actions.Size = UDim2.new(0, 106, 0, 32)
+        local aLayout = Instance.new("UIListLayout", Actions)
+        aLayout.FillDirection = Enum.FillDirection.Horizontal
+        aLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+        aLayout.Padding = UDim.new(0, 5)
+
+        if item.Position then
+            local TpBtn = Instance.new("TextButton")
+            TpBtn.Parent = Actions
+            TpBtn.Size = UDim2.new(0, 45, 1, 0)
+            TpBtn.BackgroundColor3 = Color3.fromRGB(38, 166, 91)
+            TpBtn.Font = Enum.Font.GothamBold
+            TpBtn.Text = "TP"
+            TpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TpBtn.TextSize = 11
+            Instance.new("UICorner", TpBtn).CornerRadius = UDim.new(0, 4)
+            TpBtn.MouseButton1Click:Connect(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(item.Position + Vector3.new(0, 3, 0))
+                end
+            end)
+        end
+
+        local CopyBtn = Instance.new("TextButton")
+        CopyBtn.Parent = Actions
+        CopyBtn.Size = UDim2.new(0, item.Position and 52 or 95, 1, 0)
+        CopyBtn.BackgroundColor3 = Color3.fromRGB(48, 48, 60)
+        CopyBtn.Font = Enum.Font.GothamBold
+        CopyBtn.Text = "COPY"
+        CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CopyBtn.TextSize = 10
+        Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 4)
+        CopyBtn.MouseButton1Click:Connect(function()
+            CopyToClipboard(item.Path)
+            CopyBtn.Text = "COPIED!"
+            task.delay(1, function()
+                if CopyBtn and CopyBtn.Parent then CopyBtn.Text = "COPY" end
+            end)
+        end)
+
+        rowCards[item] = Card
+    end
+
+    ApplySortAndFilters()
+end
+
+-- ══════════════════════════════════════════
+--         CORE SCAN ENGINE BACKENDS
+-- ══════════════════════════════════════════
+
+-- Backend 1: Ultra Fast Text & GUI Scanner (Normal, Force, Screen)
+local function RunTextScan(scanMode)
+    WindUI:Notify({
+        Title = "Scanning Text & GUIs",
+        Content = "Starting " .. string.upper(scanMode) .. " scan...",
+        Duration = 3
+    })
+
+    task.spawn(function()
+        local character = LocalPlayer.Character
+        local hrpPos = (character and character:FindFirstChild("HumanoidRootPart")) and character.HumanoidRootPart.Position or Vector3.new(0, 0, 0)
+        local results = {}
+        local foundMap = {}
+
+        if scanMode == "Screen" then
+            local targets = {}
+            if LocalPlayer:FindFirstChild("PlayerGui") then table.insert(targets, LocalPlayer.PlayerGui) end
+            pcall(function() table.insert(targets, CoreGui) end)
+
+            local counter = 0
+            for _, rootObj in ipairs(targets) do
+                for _, obj in ipairs(rootObj:GetDescendants()) do
+                    counter = counter + 1
+                    if counter % 250 == 0 then task.wait() end
+
+                    local isSelfGui = (textScannerScreenGui and obj:IsDescendantOf(textScannerScreenGui))
+                    local isBackpack = string.find(obj.Name, "Backpack") or obj:FindFirstAncestor("Backpack") or obj:FindFirstAncestor("BackpackGui")
+
+                    if not isSelfGui and not isBackpack and obj:IsA("GuiObject") then
+                        local identifier = obj.Name
+                        local extractedImg = nil
+                        local fullPath = GetStructuralPath(obj)
+
+                        if obj:IsA("ImageButton") or obj:IsA("ImageLabel") then
+                            extractedImg = obj.Image
+                        end
+
+                        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                            if obj.Text ~= "" then identifier = identifier .. " (" .. obj.Text .. ")" end
+                        end
+
+                        if not foundMap[fullPath] then
+                            foundMap[fullPath] = true
+                            table.insert(results, {
+                                Text = identifier,
+                                Path = fullPath,
+                                ClassName = obj.ClassName,
+                                Image = extractedImg,
+                                Pos3D = nil
+                            })
+                        end
+                    end
+                end
+            end
+        else
+            local counter = 0
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                counter = counter + 1
+                if counter % 250 == 0 then task.wait() end
+
+                local textStr = nil
+                local pos3D = Get3DPosition(obj)
+                local inRange = false
+
+                if pos3D then
+                    local distance = (hrpPos - pos3D).Magnitude
+                    if distance <= 50 then
+                        inRange = true
+                    end
+                elseif scanMode == "Force" then
+                    inRange = true
+                end
+
+                if inRange then
+                    if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                        textStr = obj.Text
+                    elseif obj:IsA("ProximityPrompt") then
+                        textStr = tostring(obj.ActionText or "") .. " " .. tostring(obj.ObjectText or "")
+                    elseif obj:IsA("Dialog") then
+                        textStr = obj.InitialPrompt
+                    end
+
+                    if scanMode == "Force" and not textStr then
+                        if obj:IsA("Humanoid") then
+                            textStr = obj.DisplayName ~= "" and obj.DisplayName or obj.Parent.Name
+                        elseif obj:IsA("Model") and obj.Name ~= "Workspace" and obj.Name ~= "Part" then
+                            if obj.Name:match("%a+") then textStr = obj.Name end
+                        end
+                    end
+
+                    if textStr and type(textStr) == "string" and textStr:gsub("%s+", "") ~= "" then
+                        local fullPath = GetStructuralPath(obj)
+                        if not foundMap[fullPath] then
+                            foundMap[fullPath] = true
+                            table.insert(results, {
+                                Text = textStr,
+                                Path = fullPath,
+                                ClassName = obj.ClassName,
+                                Image = nil,
+                                Pos3D = pos3D
+                            })
+                        end
+                    end
+                end
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Scan Complete!",
+            Content = "Found " .. #results .. " text/GUI instances.",
+            Duration = 3
+        })
+
+        CreateModernTextScannerUI(results, scanMode)
+    end)
+end
+
+-- Backend 2: Ultra 3D Visual & Spatial Scanner (Configurable Studs, Models, Decals, Parts)
+local function ExecuteSpatialScan(scanRadius)
+    scanRadius = scanRadius or 40
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        WindUI:Notify({
+            Title = "Scan Error",
+            Content = "HumanoidRootPart not found!",
+            Duration = 3
+        })
+        return
+    end
+
+    local rootPosition = character.HumanoidRootPart.Position
+
+    WindUI:Notify({
+        Title = "Scanning 3D Space",
+        Content = "Scanning " .. tostring(scanRadius) .. " studs radius...",
+        Duration = 3
+    })
+
+    task.spawn(function()
+        local rangeMultiplier = Vector3.new(scanRadius, scanRadius, scanRadius)
+        local minBound = rootPosition - rangeMultiplier
+        local maxBound = rootPosition + rangeMultiplier
+        local scanningRegion = Region3.new(minBound, maxBound)
+
+        local overlappingParts = Workspace:FindPartsInRegion3(scanningRegion, nil, math.huge)
+        local indexedPaths = {}
+        local results = {}
+        local loopCounter = 0
+
+        local function processObject(target, fallbackPos)
+            if not target or target == Workspace or target == game then return end
+
+            local absolutePath = GetStructuralPath(target)
+            if not indexedPaths[absolutePath] then
+                indexedPaths[absolutePath] = true
+
+                local className = target.ClassName
+                local targetName = target.Name
+                local targetPos = fallbackPos
+                local targetSize = Vector3.new(1, 1, 1)
+
+                if target:IsA("BasePart") then
+                    targetPos = target.Position
+                    targetSize = target.Size
+                elseif target:IsA("Model") then
+                    targetPos = target:GetPivot().Position
+                    pcall(function() targetSize = target:GetExtentsSize() end)
+                end
+
+                local dist = targetPos and (rootPosition - targetPos).Magnitude or 0
+                local vol = targetSize.X * targetSize.Y * targetSize.Z
+
+                table.insert(results, {
+                    Name = targetName,
+                    Path = absolutePath,
+                    ClassName = className,
+                    Position = targetPos,
+                    Size = targetSize,
+                    Distance = dist,
+                    Volume = vol
+                })
+            end
+        end
+
+        -- Phase 1: Physical Region Overlap
+        for _, part in ipairs(overlappingParts) do
+            loopCounter = loopCounter + 1
+            if loopCounter % 200 == 0 then task.wait() end
+
+            if not part:IsDescendantOf(character) then
+                processObject(part, part.Position)
+                if part.Parent and part.Parent:IsA("Model") and part.Parent ~= Workspace then
+                    processObject(part.Parent, part.Position)
+                end
+
+                for _, child in ipairs(part:GetChildren()) do
+                    if child:IsA("Decal") or child:IsA("Texture") or child:IsA("SpecialMesh") or child:IsA("ParticleEmitter") or child:IsA("SurfaceGui") then
+                        processObject(child, part.Position)
+                    end
+                end
+            end
+        end
+
+        -- Phase 2: Spatial Fallback for Invisible/Mesh/Decorative Assets
+        local looseUniverse = Workspace:GetDescendants()
+        for i = 1, #looseUniverse do
+            local obj = looseUniverse[i]
+            if not obj:IsDescendantOf(character) then
+                if obj:IsA("SpecialMesh") or obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("Model") then
+                    local objPos = nil
+                    if obj:IsA("Model") then
+                        objPos = obj:GetPivot().Position
+                    else
+                        local p = obj:FindFirstAncestorWhichIsA("BasePart")
+                        if p then objPos = p.Position end
+                    end
+
+                    if objPos then
+                        local dist = (rootPosition - objPos).Magnitude
+                        if dist <= scanRadius then
+                            loopCounter = loopCounter + 1
+                            if loopCounter % 200 == 0 then task.wait() end
+                            processObject(obj, objPos)
+                        end
+                    end
+                end
+            end
+        end
+
+        WindUI:Notify({
+            Title = "3D Scan Complete!",
+            Content = "Found " .. #results .. " visual objects within " .. tostring(scanRadius) .. " studs.",
+            Duration = 3
+        })
+
+        CreateModernSpatialScannerUI(results, scanRadius)
+    end)
+end
+
+-- ══════════════════════════════════════════
+--               SCAN TAB UI
+-- ══════════════════════════════════════════
+
+-- ── 1. Boxed Section: Text ──
+local TextSection = Tabs.Scan:Section({
+    Title = "Text",
+    Box = true,
+    BoxBorder = true,
+    Opened = true,
+})
+
+-- Buttons inside Text Section (NORMAL, FORCE, SCREEN)
+TextSection:Button({
+    Title = "NORMAL SCAN",
+    Desc = "Fast 50-Stud World Text & Prompt Scan",
+    Icon = "solar:text-bold",
+    Justify = "Left",
+    Callback = function()
+        RunTextScan("Normal")
+    end
+})
+
+TextSection:Button({
+    Title = "FORCE SCAN",
+    Desc = "Deep Scan (Models, Characters, Hidden Text & Prompts)",
+    Icon = "solar:magnifer-bold",
+    Justify = "Left",
+    Callback = function()
+        RunTextScan("Force")
+    end
+})
+
+TextSection:Button({
+    Title = "SCREEN SCAN",
+    Desc = "Scan All ScreenGuis, Buttons, Labels & PlayerGui Elements",
+    Icon = "solar:monitor-bold",
+    Justify = "Left",
+    Callback = function()
+        RunTextScan("Screen")
+    end
+})
+
+-- ── 2. Boxed Section: 3D ──
+local SpatialSection = Tabs.Scan:Section({
+    Title = "3D",
+    Box = true,
+    BoxBorder = true,
+    Opened = true,
+})
+
+local currentSpatialRadius = 40
+
+SpatialSection:Slider({
+    Title = "Scan Radius",
+    Desc = "Range in studs to scan 3D instances (1 - 100)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 100,
+        Default = 40,
+    },
+    Callback = function(val)
+        currentSpatialRadius = val
+    end
+})
+
+-- Button at the bottom (sabse niche click button)
+SpatialSection:Button({
+    Title = "RUN 3D SPATIAL SCAN",
+    Desc = "Scan all parts, models, meshes & visuals in radius",
+    Icon = "solar:radar-2-bold",
+    Justify = "Left",
+    Callback = function()
+        ExecuteSpatialScan(currentSpatialRadius)
+    end
+})
+
+-- ══════════════════════════════════════════
+--              LOAD OTHERS.LUA
+-- ══════════════════════════════════════════
+local okOthers, OthersFunc = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/wendigo5414-cmyk/FireballxArena/main/Others.lua", true))()
+end)
+
+local NumberConverter = nil
+if okOthers and type(OthersFunc) == "function" then
+    NumberConverter = OthersFunc(Window, Tabs, WindUI)
+else
+    WindUI:Notify({
+        Title = "Error",
+        Content = "Failed to load basic categories from Others.lua",
+        Duration = 5
+    })
+end
+
+WindUI:Notify({
+    Title = "Prime X Hub",
+    Content = "PXH Tool loaded successfully!",
+    Duration = 5
+})
