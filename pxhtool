@@ -68,6 +68,7 @@ Window:Tag({
 local Tabs = {
     Runs     = Window:Tab({ Title = "Runs", Icon = "solar:play-circle-bold" }),
     Scan     = Window:Tab({ Title = "Scan", Icon = "solar:scanner-bold" }),
+    Code     = Window:Tab({ Title = "Code", Icon = "solar:code-bold" }),
     Movement = Window:Tab({ Title = "Movement", Icon = "solar:running-bold" }),
     Teleport = Window:Tab({ Title = "Teleport", Icon = "solar:map-point-bold" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "solar:settings-bold" }),
@@ -1279,6 +1280,904 @@ SpatialSection:Button({
     Justify = "Left",
     Callback = function()
         ExecuteSpatialScan(currentSpatialRadius)
+    end
+})
+
+-- ══════════════════════════════════════════
+--              CODE TAB: SPAM ENGINE & TARGET TRACKER
+-- ══════════════════════════════════════════
+
+-- ── 1. Comprehensive Extended Number Converter ──
+local PXH_ExtendedSuffixes = {
+    "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No",
+    "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod",
+    "Vg", "Uvg", "Dvg", "Tvg", "Qavg", "Qivg", "Sxvg", "Spvg", "Ocvg", "Novg",
+    "Tg", "Utg", "Dtg", "Ttg", "Qatg", "Qitg", "Sxtg", "Sptg", "Octg", "Notg",
+    "Qd", "Uqd", "Dqd", "Tqd", "Qaqd", "Qiqd", "Sxqd", "Spqd", "Ocqd", "Noqd",
+}
+
+local PXH_NumberConverter = {}
+
+function PXH_NumberConverter.Format(value)
+    local number = tonumber(value)
+    if not number then return tostring(value or 0) end
+    if number < 0 then
+        return "-" .. PXH_NumberConverter.Format(-number)
+    end
+    if number < 1000 then
+        if math.floor(number) == number then
+            return tostring(number)
+        else
+            return string.format("%.2f", number)
+        end
+    end
+
+    local suffixIndex = math.floor(math.log10(number) / 3)
+    local shortValue = number / (10 ^ (suffixIndex * 3))
+
+    if suffixIndex > 0 and suffixIndex <= #PXH_ExtendedSuffixes then
+        return string.format("%.2f%s", shortValue, PXH_ExtendedSuffixes[suffixIndex])
+    else
+        return string.format("%.2e", number)
+    end
+end
+
+function PXH_NumberConverter.Parse(str)
+    if type(str) == "number" then return str end
+    if not str then return 0 end
+    str = tostring(str)
+    str = string.gsub(str, "<[^>]+>", "")
+    str = string.gsub(str, ",", "")
+
+    local slashPos = string.find(str, "/")
+    if slashPos then
+        str = string.sub(str, 1, slashPos - 1)
+    end
+
+    str = string.upper(str)
+    for _, noise in ipairs({"WINS", "REQUIRED", "COST", "PRICE", "NEEDED", "STRENGTH", "COINS", "LEVEL", "XP", "ENERGY", "GEMS"}) do
+        str = string.gsub(str, noise, "")
+    end
+    str = string.gsub(str, "[^%d%.A-Z]", "")
+
+    local numberPart = string.match(str, "^[%d%.]+")
+    local suffixPart = string.match(str, "[A-Z]+$")
+    if not numberPart then return 0 end
+    local number = tonumber(numberPart) or 0
+    if suffixPart then
+        if suffixPart == "QT" then suffixPart = "QI" end
+        if suffixPart == "QD" then suffixPart = "QA" end
+        for i, suffix in ipairs(PXH_ExtendedSuffixes) do
+            if string.upper(suffix) == suffixPart then
+                return number * (10 ^ (i * 3))
+            end
+        end
+    end
+    return number
+end
+
+-- ── 2. Structural & Smart Instance Path Resolver ──
+local function ResolveInstanceFromPath(pathStr)
+    if not pathStr or type(pathStr) ~= "string" or pathStr:gsub("%s+", "") == "" then
+        return nil
+    end
+
+    local cleanPath = pathStr
+    cleanPath = cleanPath:gsub('^game:GetService%("([^"]+)"%)', "%1")
+    cleanPath = cleanPath:gsub('^game:GetService%\'([^\']+)\'%)', "%1")
+    cleanPath = cleanPath:gsub('^game%.', "")
+
+    local segments = {}
+    for seg in string.gmatch(cleanPath, "[^%.%[%]\"]+") do
+        if seg ~= "game" and seg ~= "GetService" and seg ~= "" then
+            table.insert(segments, seg)
+        end
+    end
+
+    local current = nil
+    if segments[1] == "LocalPlayer" or segments[1] == "Players" then
+        if segments[1] == "Players" and segments[2] == "LocalPlayer" then
+            current = LocalPlayer
+            for i = 3, #segments do
+                if current and current:FindFirstChild(segments[i]) then
+                    current = current:FindFirstChild(segments[i])
+                else
+                    current = nil
+                    break
+                end
+            end
+        elseif segments[1] == "LocalPlayer" then
+            current = LocalPlayer
+            for i = 2, #segments do
+                if current and current:FindFirstChild(segments[i]) then
+                    current = current:FindFirstChild(segments[i])
+                else
+                    current = nil
+                    break
+                end
+            end
+        end
+    elseif segments[1] == "Workspace" or segments[1] == "workspace" then
+        current = Workspace
+        for i = 2, #segments do
+            if current and current:FindFirstChild(segments[i]) then
+                current = current:FindFirstChild(segments[i])
+            else
+                current = nil
+                break
+            end
+        end
+    elseif segments[1] == "PlayerGui" then
+        current = LocalPlayer:FindFirstChild("PlayerGui")
+        for i = 2, #segments do
+            if current and current:FindFirstChild(segments[i]) then
+                current = current:FindFirstChild(segments[i])
+            else
+                current = nil
+                break
+            end
+        end
+    end
+
+    if current and (current:IsA("TextLabel") or current:IsA("TextButton") or current:IsA("TextBox")) then
+        return current
+    end
+
+    -- Deep name fallback in PlayerGui and Workspace
+    local searchName = segments[#segments] or pathStr
+    if LocalPlayer:FindFirstChild("PlayerGui") then
+        for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+            if desc.Name == searchName and (desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox")) then
+                return desc
+            end
+        end
+    end
+
+    for _, desc in ipairs(Workspace:GetDescendants()) do
+        if desc.Name == searchName and (desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox")) then
+            return desc
+        end
+    end
+
+    return nil
+end
+
+-- ── 3. Target Pattern Matcher (Target X vs Ignore variables a, y, z) ──
+local function ExtractTargetValue(textStr, formatPattern)
+    if not textStr or type(textStr) ~= "string" then
+        return nil, 0
+    end
+
+    -- Clean rich text tags first
+    local cleanText = string.gsub(textStr, "<[^>]+>", "")
+
+    -- If pattern is empty or simple X, find first number + suffix
+    if not formatPattern or formatPattern:gsub("%s+", "") == "" or formatPattern:gsub("%s+", "") == "X" then
+        local rawMatch = string.match(cleanText, "[%d%,%.]+%s*[A-Za-z]*")
+        if rawMatch then
+            local cleanStr = rawMatch:gsub(",", ""):gsub("%s+", "")
+            local parsedNum = PXH_NumberConverter.Parse(cleanStr)
+            return rawMatch, parsedNum
+        end
+        return nil, 0
+    end
+
+    -- Escape Lua magic characters except 'X' and single lowercase letters
+    local specialChars = { "%.", "%(", "%)", "%+", "%-", "%*", "%?", "%[", "%]", "%^", "%$", "%%" }
+    local escaped = ""
+    for i = 1, #formatPattern do
+        local c = string.sub(formatPattern, i, i)
+        local isSpecial = false
+        for _, sp in ipairs({ ".", "(", ")", "+", "-", "*", "?", "[", "]", "^", "$", "%" }) do
+            if c == sp then
+                isSpecial = true
+                break
+            end
+        end
+        if isSpecial then
+            escaped = escaped .. "%" .. c
+        else
+            escaped = escaped .. c
+        end
+    end
+
+    -- Replace single lowercase letters (variables like a, y, z) with ignore patterns [^%s/%,%)]+
+    escaped = string.gsub(escaped, "%f[%a]([a-z])%f[%A]", "[^%%s%%/%%,%%)%%]]+")
+
+    -- Replace 'X' with capture group for number and suffixes
+    escaped = string.gsub(escaped, "X", "([%%d%%,%%.]+%%s*[A-Za-z]*)")
+
+    local okMatch, captured = pcall(function()
+        return string.match(cleanText, escaped)
+    end)
+
+    if okMatch and captured then
+        local cleanStr = captured:gsub(",", ""):gsub("%s+", "")
+        local parsedNum = PXH_NumberConverter.Parse(cleanStr)
+        return captured, parsedNum
+    end
+
+    -- Graceful fallback: extract first valid number with suffix
+    local fallback = string.match(cleanText, "[%d%,%.]+%s*[A-Za-z]*")
+    if fallback then
+        local cleanStr = fallback:gsub(",", ""):gsub("%s+", "")
+        local parsedNum = PXH_NumberConverter.Parse(cleanStr)
+        return fallback, parsedNum
+    end
+
+    return nil, 0
+end
+
+-- ── 4. Config State & Persistence ──
+local PXH_SPAM_CONFIG_FILE = "PXH_SpamCodeConfigs.json"
+local PXH_CreatedSpamConfigs = {}
+
+local function LoadSpamConfigsFromDisk()
+    local loaded = false
+    if isfile and readfile and isfile(PXH_SPAM_CONFIG_FILE) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(PXH_SPAM_CONFIG_FILE))
+        end)
+        if ok and type(data) == "table" and #data > 0 then
+            PXH_CreatedSpamConfigs = data
+            loaded = true
+        end
+    end
+
+    if not loaded or #PXH_CreatedSpamConfigs == 0 then
+        PXH_CreatedSpamConfigs = {
+            {
+                Name = "Example Win Spammer",
+                Code = "-- Enter your game remote fire code here\n-- print('Spam cycle executed')\n",
+                TargetPath = "Players.LocalPlayer.PlayerGui",
+                FormatPattern = "X WINS"
+            }
+        }
+    end
+end
+LoadSpamConfigsFromDisk()
+
+local function SaveSpamConfigsToDisk()
+    if writefile then
+        pcall(function()
+            writefile(PXH_SPAM_CONFIG_FILE, HttpService:JSONEncode(PXH_CreatedSpamConfigs))
+        end)
+    end
+end
+
+local function GetConfigNamesList()
+    local names = {}
+    for _, cfg in ipairs(PXH_CreatedSpamConfigs) do
+        table.insert(names, cfg.Name)
+    end
+    if #names == 0 then
+        table.insert(names, "None (Create First)")
+    end
+    return names
+end
+
+local selectedConfigIndex = 1
+local currentSelectedConfig = PXH_CreatedSpamConfigs[1] or nil
+
+-- ── 5. Runner State & Settings ──
+local isSpamRunning = false
+local spamSpeedDelay = 0.05
+local spamMultiplierThreads = 1
+
+-- ── 6. Rolling Speed & Acceleration Tracker State ──
+local valueHistory = {} -- { { t = os.clock(), v = num } }
+local currentRawValue = 0
+local currentFormattedValue = "0"
+local currentRatePerSec = 0
+local currentAcceleration = 0
+local lastFoundTargetInstance = nil
+
+-- Forward declaration of UI elements
+local UpdateStatsDisplay
+local ActiveConfigDropdown = nil
+
+-- ── 7. Draggable Popup Modal: Create Spam Code UI ──
+local spamModalScreenGui = nil
+
+local function OpenCreateSpamCodeUI(editConfig)
+    if spamModalScreenGui and spamModalScreenGui.Parent then
+        spamModalScreenGui:Destroy()
+        spamModalScreenGui = nil
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PXH_CreateSpamCodeUI"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function() ScreenGui.Parent = CoreGui end)
+    if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    spamModalScreenGui = ScreenGui
+
+    local ModalFrame = Instance.new("Frame")
+    ModalFrame.Name = "ModalFrame"
+    ModalFrame.Parent = ScreenGui
+    ModalFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    ModalFrame.Position = UDim2.new(0.5, -240, 0.5, -230)
+    ModalFrame.Size = UDim2.new(0, 480, 0, 460)
+    ModalFrame.BorderSizePixel = 0
+    Instance.new("UICorner", ModalFrame).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", ModalFrame)
+    stroke.Color = Color3.fromRGB(50, 50, 65)
+    stroke.Thickness = 1.2
+
+    -- Topbar (Draggable)
+    local Topbar = Instance.new("Frame")
+    Topbar.Name = "Topbar"
+    Topbar.Parent = ModalFrame
+    Topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    Topbar.Size = UDim2.new(1, 0, 0, 38)
+    Topbar.BorderSizePixel = 0
+    Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 8)
+
+    local TopbarTitle = Instance.new("TextLabel")
+    TopbarTitle.Parent = Topbar
+    TopbarTitle.BackgroundTransparency = 1
+    TopbarTitle.Position = UDim2.new(0, 14, 0, 0)
+    TopbarTitle.Size = UDim2.new(0.8, 0, 1, 0)
+    TopbarTitle.Font = Enum.Font.GothamBold
+    TopbarTitle.Text = "⚡ Create Spam Code & Target Tracker"
+    TopbarTitle.TextColor3 = Color3.fromRGB(80, 220, 255)
+    TopbarTitle.TextSize = 13
+    TopbarTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Parent = Topbar
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Position = UDim2.new(1, -38, 0, 0)
+    CloseBtn.Size = UDim2.new(0, 38, 1, 0)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+    CloseBtn.TextSize = 14
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        spamModalScreenGui = nil
+    end)
+
+    -- Dragging logic
+    local dragging, dragStart, startPos = false, nil, nil
+    Topbar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ModalFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    Topbar.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            ModalFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Content Scroll
+    local Content = Instance.new("ScrollingFrame")
+    Content.Parent = ModalFrame
+    Content.BackgroundTransparency = 1
+    Content.Position = UDim2.new(0, 14, 0, 46)
+    Content.Size = UDim2.new(1, -28, 1, -100)
+    Content.CanvasSize = UDim2.new(0, 0, 0, 390)
+    Content.ScrollBarThickness = 3
+    Content.BorderSizePixel = 0
+
+    local contentLayout = Instance.new("UIListLayout", Content)
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Padding = UDim.new(0, 10)
+
+    -- Helper input builder
+    local function CreateInputBlock(order, labelText, placeholderText, defaultVal, isMultiline, height)
+        local block = Instance.new("Frame")
+        block.BackgroundTransparency = 1
+        block.Size = UDim2.new(1, 0, 0, height or 62)
+        block.LayoutOrder = order
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Parent = block
+        lbl.BackgroundTransparency = 1
+        lbl.Size = UDim2.new(1, 0, 0, 18)
+        lbl.Font = Enum.Font.GothamBold
+        lbl.Text = labelText
+        lbl.TextColor3 = Color3.fromRGB(210, 215, 230)
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+        local boxFrame = Instance.new("Frame")
+        boxFrame.Parent = block
+        boxFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+        boxFrame.Position = UDim2.new(0, 0, 0, 22)
+        boxFrame.Size = UDim2.new(1, 0, 1, -22)
+        Instance.new("UICorner", boxFrame).CornerRadius = UDim.new(0, 6)
+        local bStroke = Instance.new("UIStroke", boxFrame)
+        bStroke.Color = Color3.fromRGB(45, 45, 58)
+        bStroke.Thickness = 1
+
+        local box = Instance.new("TextBox")
+        box.Parent = boxFrame
+        box.BackgroundTransparency = 1
+        box.Position = UDim2.new(0, 8, 0, 4)
+        box.Size = UDim2.new(1, -16, 1, -8)
+        box.Font = Enum.Font.Code
+        box.PlaceholderText = placeholderText
+        box.PlaceholderColor3 = Color3.fromRGB(100, 105, 120)
+        box.Text = defaultVal or ""
+        box.TextColor3 = Color3.fromRGB(240, 240, 250)
+        box.TextSize = 11
+        box.TextXAlignment = Enum.TextXAlignment.Left
+        box.TextYAlignment = isMultiline and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center
+        box.ClearTextOnFocus = false
+        box.MultiLine = isMultiline or false
+        box.TextWrapped = isMultiline or false
+
+        return box
+    end
+
+    local initialCfg = editConfig or currentSelectedConfig or {}
+
+    -- 1. Name Input
+    local nameBox = CreateInputBlock(1, "1. CONFIG NAME", "e.g. Strength Spammer or Auto Win", initialCfg.Name or "", false, 58)
+
+    -- 2. Code to Run Input
+    local codeBox = CreateInputBlock(2, "2. LUA CODE TO SPAM / RUN", "e.g. game:GetService('ReplicatedStorage').Remotes.Farm:FireServer()", initialCfg.Code or "", true, 110)
+
+    -- 3. Target Instance Path Input
+    local targetPathBox = CreateInputBlock(3, "3. TARGET TEXT INSTANCE PATH (PlayerGui / Workspace)", "e.g. Players.LocalPlayer.PlayerGui.Stats.Wins or WinsLabel", initialCfg.TargetPath or "", false, 58)
+
+    -- 4. Format Pattern Input
+    local formatBox = CreateInputBlock(4, "4. FORMAT PATTERN (Target: X | Ignore variables: a, y, z)", "e.g. X WINS or X / a", initialCfg.FormatPattern or "X WINS", false, 58)
+
+    -- Guide Label
+    local guideFrame = Instance.new("Frame")
+    guideFrame.Parent = Content
+    guideFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 40)
+    guideFrame.Size = UDim2.new(1, 0, 0, 52)
+    guideFrame.LayoutOrder = 5
+    Instance.new("UICorner", guideFrame).CornerRadius = UDim.new(0, 6)
+    local guideStroke = Instance.new("UIStroke", guideFrame)
+    guideStroke.Color = Color3.fromRGB(35, 70, 95)
+    guideStroke.Thickness = 1
+
+    local guideText = Instance.new("TextLabel")
+    guideText.Parent = guideFrame
+    guideText.BackgroundTransparency = 1
+    guideText.Position = UDim2.new(0, 8, 0, 4)
+    guideText.Size = UDim2.new(1, -16, 1, -8)
+    guideText.Font = Enum.Font.Gotham
+    guideText.Text = "💡 Guide: Use 'X' for your primary target value (auto-converts K, M, B, T, Qa...). Use small letters 'a', 'y', 'z' for secondary variables to ignore (e.g. 'X / a')."
+    guideText.TextColor3 = Color3.fromRGB(100, 210, 255)
+    guideText.TextSize = 10
+    guideText.TextWrapped = true
+    guideText.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Bottom Action Bar
+    local BottomBar = Instance.new("Frame")
+    Topbar.Name = "BottomBar"
+    BottomBar.Parent = ModalFrame
+    BottomBar.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    BottomBar.Position = UDim2.new(0, 0, 1, -48)
+    BottomBar.Size = UDim2.new(1, 0, 0, 48)
+    BottomBar.BorderSizePixel = 0
+    Instance.new("UICorner", BottomBar).CornerRadius = UDim.new(0, 8)
+
+    local SaveBtn = Instance.new("TextButton")
+    SaveBtn.Parent = BottomBar
+    SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
+    SaveBtn.Position = UDim2.new(1, -180, 0, 8)
+    SaveBtn.Size = UDim2.new(0, 166, 0, 32)
+    SaveBtn.Font = Enum.Font.GothamBold
+    SaveBtn.Text = "💾 Save & Apply Config"
+    SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SaveBtn.TextSize = 11
+    Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
+
+    local CancelBtn = Instance.new("TextButton")
+    CancelBtn.Parent = BottomBar
+    CancelBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    CancelBtn.Position = UDim2.new(1, -270, 0, 8)
+    CancelBtn.Size = UDim2.new(0, 80, 0, 32)
+    CancelBtn.Font = Enum.Font.GothamBold
+    CancelBtn.Text = "Cancel"
+    CancelBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    CancelBtn.TextSize = 11
+    Instance.new("UICorner", CancelBtn).CornerRadius = UDim.new(0, 6)
+
+    CancelBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        spamModalScreenGui = nil
+    end)
+
+    SaveBtn.MouseButton1Click:Connect(function()
+        local name = nameBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+        local code = codeBox.Text
+        local targetPath = targetPathBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+        local formatPat = formatBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+
+        if name == "" then
+            WindUI:Notify({ Title = "Missing Name", Content = "Please enter a valid Config Name.", Duration = 3 })
+            return
+        end
+        if code:gsub("%s+", "") == "" then
+            WindUI:Notify({ Title = "Missing Code", Content = "Please enter the lua code to spam/run.", Duration = 3 })
+            return
+        end
+
+        local existingIndex = nil
+        for idx, cfg in ipairs(PXH_CreatedSpamConfigs) do
+            if cfg.Name == name then
+                existingIndex = idx
+                break
+            end
+        end
+
+        local newEntry = {
+            Name = name,
+            Code = code,
+            TargetPath = targetPath,
+            FormatPattern = formatPat ~= "" and formatPat or "X"
+        }
+
+        if existingIndex then
+            PXH_CreatedSpamConfigs[existingIndex] = newEntry
+            selectedConfigIndex = existingIndex
+        else
+            table.insert(PXH_CreatedSpamConfigs, newEntry)
+            selectedConfigIndex = #PXH_CreatedSpamConfigs
+        end
+
+        currentSelectedConfig = newEntry
+        SaveSpamConfigsToDisk()
+
+        if ActiveConfigDropdown and ActiveConfigDropdown.Refresh then
+            ActiveConfigDropdown:Refresh(GetConfigNamesList())
+        end
+
+        valueHistory = {}
+        UpdateStatsDisplay()
+
+        WindUI:Notify({
+            Title = "Spam Config Saved!",
+            Content = "Config '" .. name .. "' created and selected.",
+            Duration = 3
+        })
+
+        ScreenGui:Destroy()
+        spamModalScreenGui = nil
+    end)
+end
+
+-- ── 8. Real-time Rolling Speed (Acceleration Rate) Engine ──
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+
+        if currentSelectedConfig then
+            local targetObj = ResolveInstanceFromPath(currentSelectedConfig.TargetPath)
+            lastFoundTargetInstance = targetObj
+
+            if targetObj and (targetObj:IsA("TextLabel") or targetObj:IsA("TextButton") or targetObj:IsA("TextBox")) then
+                local rawStr, parsedVal = ExtractTargetValue(targetObj.Text, currentSelectedConfig.FormatPattern)
+
+                if parsedVal then
+                    currentRawValue = parsedVal
+                    currentFormattedValue = rawStr or PXH_NumberConverter.Format(parsedVal)
+
+                    local now = os.clock()
+                    table.insert(valueHistory, { t = now, v = parsedVal })
+
+                    -- Prune samples older than 1.2 seconds for 1-second rolling window
+                    local pruned = {}
+                    for _, sample in ipairs(valueHistory) do
+                        if (now - sample.t) <= 1.2 then
+                            table.insert(pruned, sample)
+                        end
+                    end
+                    valueHistory = pruned
+
+                    -- Calculate 1-Second Average Rate & Acceleration
+                    if #valueHistory >= 2 then
+                        local oldest = valueHistory[1]
+                        local latest = valueHistory[#valueHistory]
+                        local dt = latest.t - oldest.t
+                        local dv = latest.v - oldest.v
+
+                        if dt >= 0.2 then
+                            currentRatePerSec = dv / dt
+                        else
+                            currentRatePerSec = 0
+                        end
+
+                        -- Acceleration: compare rate of first half vs second half
+                        if #valueHistory >= 4 then
+                            local midIdx = math.floor(#valueHistory / 2)
+                            local midSample = valueHistory[midIdx]
+                            local dt1 = midSample.t - oldest.t
+                            local dv1 = midSample.v - oldest.v
+                            local dt2 = latest.t - midSample.t
+                            local dv2 = latest.v - midSample.v
+
+                            local r1 = dt1 > 0 and (dv1 / dt1) or 0
+                            local r2 = dt2 > 0 and (dv2 / dt2) or 0
+                            local halfDt = (latest.t - oldest.t) / 2
+                            if halfDt > 0 then
+                                currentAcceleration = (r2 - r1) / halfDt
+                            else
+                                currentAcceleration = 0
+                            end
+                        else
+                            currentAcceleration = 0
+                        end
+                    else
+                        currentRatePerSec = 0
+                        currentAcceleration = 0
+                    end
+                end
+            else
+                currentRatePerSec = 0
+                currentAcceleration = 0
+            end
+        else
+            currentRatePerSec = 0
+            currentAcceleration = 0
+        end
+
+        UpdateStatsDisplay()
+    end
+end)
+
+-- ── 9. Multi-Threaded Spam Code Runner ──
+task.spawn(function()
+    while true do
+        if isSpamRunning and currentSelectedConfig and currentSelectedConfig.Code then
+            local compiled, compileErr = loadstring(currentSelectedConfig.Code)
+            if not compiled then
+                WindUI:Notify({
+                    Title = "Spam Code Error",
+                    Content = "Compilation failed: " .. tostring(compileErr),
+                    Duration = 4
+                })
+                isSpamRunning = false
+            else
+                local threads = math.clamp(spamMultiplierThreads, 1, 100)
+                local delayTime = math.max(0.01, spamSpeedDelay)
+
+                for _ = 1, threads do
+                    task.spawn(function()
+                        pcall(compiled)
+                    end)
+                end
+
+                task.wait(delayTime)
+            end
+        else
+            task.wait(0.2)
+        end
+    end
+end)
+
+-- ── 10. Code Tab UI Elements in WindUI ──
+
+-- TOP DISPLAY: Stats & Acceleration Monitor (Sabse Top Pe)
+local StatsParagraph = Tabs.Code:Paragraph({
+    Title = "📊 Target Stats & Rate Monitor",
+    Desc = "Loading target instance metrics..."
+})
+
+UpdateStatsDisplay = function()
+    local cfgName = currentSelectedConfig and currentSelectedConfig.Name or "None Selected"
+    local pathDisplay = "Not set"
+    if currentSelectedConfig and currentSelectedConfig.TargetPath ~= "" then
+        pathDisplay = currentSelectedConfig.TargetPath
+        if lastFoundTargetInstance then
+            pathDisplay = pathDisplay .. " (FOUND: " .. lastFoundTargetInstance.ClassName .. ")"
+        else
+            pathDisplay = pathDisplay .. " (Searching...)"
+        end
+    end
+
+    local rateStr = "+0.00 /s"
+    if currentRatePerSec > 0 then
+        rateStr = "+" .. PXH_NumberConverter.Format(currentRatePerSec) .. " /s"
+    elseif currentRatePerSec < 0 then
+        rateStr = "-" .. PXH_NumberConverter.Format(math.abs(currentRatePerSec)) .. " /s"
+    else
+        rateStr = "0.00 /s"
+    end
+
+    local trendStr = "⏸️ Stable / Idle"
+    if currentAcceleration > 1 then
+        trendStr = "⚡ Accelerating (+" .. PXH_NumberConverter.Format(currentAcceleration) .. " /s²)"
+    elseif currentAcceleration < -1 then
+        trendStr = "🔻 Decelerating (-" .. PXH_NumberConverter.Format(math.abs(currentAcceleration)) .. " /s²)"
+    elseif currentRatePerSec > 0 then
+        trendStr = "🟢 Steady Gain"
+    end
+
+    local statusStr = isSpamRunning and ("🚀 ACTIVE SPAMMING (" .. spamMultiplierThreads .. " Threads @ " .. spamSpeedDelay .. "s)") or "⏸️ STOPPED"
+
+    local descText = string.format(
+        "Config: %s\nTarget Path: %s\nPattern: %s\n\n📌 Current Target (X): %s  (Raw: %s)\n📈 1-Sec Gain Rate: %s\n🚀 Dynamics: %s\n⚙️ Runner Status: %s",
+        cfgName,
+        pathDisplay,
+        currentSelectedConfig and currentSelectedConfig.FormatPattern or "X",
+        tostring(currentFormattedValue),
+        PXH_NumberConverter.Format(currentRawValue),
+        rateStr,
+        trendStr,
+        statusStr
+    )
+
+    pcall(function()
+        if StatsParagraph.SetDesc then
+            StatsParagraph:SetDesc(descText)
+        elseif StatsParagraph.Set then
+            StatsParagraph:Set({
+                Title = "📊 Target Stats & Rate Monitor",
+                Desc = descText
+            })
+        end
+    end)
+end
+
+-- ADVANCE DROPDOWN (Advance options including Create spam code)
+Tabs.Code:Dropdown({
+    Title = "Advance Options",
+    Desc = "Actions: Create spam code, Delete config, Copy code",
+    Values = {
+        "Create spam code",
+        "Edit selected config",
+        "Delete selected config",
+        "Copy selected lua code"
+    },
+    Value = "Create spam code",
+    Callback = function(choice)
+        if choice == "Create spam code" then
+            OpenCreateSpamCodeUI()
+        elseif choice == "Edit selected config" then
+            if currentSelectedConfig then
+                OpenCreateSpamCodeUI(currentSelectedConfig)
+            else
+                WindUI:Notify({ Title = "No Config", Content = "Create or select a config first.", Duration = 3 })
+            end
+        elseif choice == "Delete selected config" then
+            if currentSelectedConfig and #PXH_CreatedSpamConfigs > 0 then
+                local removedName = currentSelectedConfig.Name
+                table.remove(PXH_CreatedSpamConfigs, selectedConfigIndex)
+                if #PXH_CreatedSpamConfigs > 0 then
+                    selectedConfigIndex = 1
+                    currentSelectedConfig = PXH_CreatedSpamConfigs[1]
+                else
+                    currentSelectedConfig = nil
+                end
+                SaveSpamConfigsToDisk()
+                if ActiveConfigDropdown and ActiveConfigDropdown.Refresh then
+                    ActiveConfigDropdown:Refresh(GetConfigNamesList())
+                end
+                WindUI:Notify({ Title = "Config Deleted", Content = "Deleted '" .. removedName .. "'", Duration = 3 })
+                UpdateStatsDisplay()
+            end
+        elseif choice == "Copy selected lua code" then
+            if currentSelectedConfig and currentSelectedConfig.Code then
+                CopyToClipboard(currentSelectedConfig.Code)
+                WindUI:Notify({ Title = "Copied!", Content = "Lua code copied to clipboard.", Duration = 3 })
+            end
+        end
+    end
+})
+
+-- DIRECT BUTTON (One-click Modal Opener)
+Tabs.Code:Button({
+    Title = "⚡ CREATE SPAM CODE (POPUP)",
+    Desc = "Open popup window to configure code, target path & pattern",
+    Icon = "solar:add-circle-bold",
+    Justify = "Left",
+    Callback = function()
+        OpenCreateSpamCodeUI()
+    end
+})
+
+-- ACTIVE CONFIG SELECTOR DROPDOWN
+ActiveConfigDropdown = Tabs.Code:Dropdown({
+    Title = "Select Spam Config",
+    Desc = "Choose from created spam configurations",
+    Values = GetConfigNamesList(),
+    Value = currentSelectedConfig and currentSelectedConfig.Name or nil,
+    Callback = function(name)
+        for idx, cfg in ipairs(PXH_CreatedSpamConfigs) do
+            if cfg.Name == name then
+                selectedConfigIndex = idx
+                currentSelectedConfig = cfg
+                valueHistory = {}
+                UpdateStatsDisplay()
+                break
+            end
+        end
+    end
+})
+
+-- CONTROLS BOX SECTION
+local CodeControlSection = Tabs.Code:Section({
+    Title = "Spam Execution Controls",
+    Box = true,
+    BoxBorder = true,
+    Opened = true
+})
+
+CodeControlSection:Toggle({
+    Title = "Run Spam Code",
+    Desc = "Start or stop automated multi-threaded code execution",
+    Value = false,
+    Callback = function(state)
+        isSpamRunning = state
+        UpdateStatsDisplay()
+        WindUI:Notify({
+            Title = state and "Spamming Started" or "Spamming Stopped",
+            Content = state and ("Firing with " .. spamMultiplierThreads .. " threads every " .. spamSpeedDelay .. "s") or "Execution halted.",
+            Duration = 2
+        })
+    end
+})
+
+CodeControlSection:Slider({
+    Title = "Execution Speed (Delay)",
+    Desc = "Delay interval between fire iterations (0.01 to 1.0s)",
+    Step = 0.01,
+    Value = {
+        Min = 0.01,
+        Max = 1.0,
+        Default = 0.05
+    },
+    Callback = function(val)
+        spamSpeedDelay = val
+        UpdateStatsDisplay()
+    end
+})
+
+CodeControlSection:Slider({
+    Title = "Multiplier (Threads / Strings)",
+    Desc = "Parallel string/threads executed per cycle (1 to 100)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 100,
+        Default = 1
+    },
+    Callback = function(val)
+        spamMultiplierThreads = math.floor(val)
+        UpdateStatsDisplay()
+    end
+})
+
+CodeControlSection:Button({
+    Title = "TEST RUN ONCE",
+    Desc = "Execute current spam code 1 time to verify no runtime errors",
+    Icon = "solar:play-bold",
+    Justify = "Left",
+    Callback = function()
+        if not currentSelectedConfig or not currentSelectedConfig.Code then
+            WindUI:Notify({ Title = "Error", Content = "No config selected.", Duration = 3 })
+            return
+        end
+
+        local compiled, compileErr = loadstring(currentSelectedConfig.Code)
+        if not compiled then
+            WindUI:Notify({ Title = "Syntax Error", Content = tostring(compileErr), Duration = 5 })
+            return
+        end
+
+        local ok, runErr = pcall(compiled)
+        if ok then
+            WindUI:Notify({ Title = "Test Run Success", Content = "Code executed without errors!", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Execution Error", Content = tostring(runErr), Duration = 5 })
+        end
     end
 })
 
